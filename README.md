@@ -1,20 +1,12 @@
 This is a Kotlin Multiplatform project targeting Android, iOS, Desktop (JVM), and native macOS.
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
-
-* [/sharedLogic](./sharedLogic/src) is for the code that will be shared between app targets in the project.
-  The most important subfolder is [commonMain](./sharedLogic/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
-
-* [/sharedUI](./sharedUI/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./sharedUI/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./sharedUI/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./sharedUI/src/jvmMain/kotlin)
-    folder is the appropriate location.
+- [sharedLogic](sharedLogic/src) owns shared domain/data, with portable code in
+  [commonMain](sharedLogic/src/commonMain/kotlin) and platform implementations in
+  their source sets.
+- [androidApp](androidApp), [desktopApp](desktopApp), [iosApp](iosApp/iosApp) and
+  [macosApp](macosApp) own client UI and native ViewModels for new features.
+- [sharedUI](sharedUI/src) remains the existing Android/JVM starter only. New
+  presentation belongs in each client; removing sharedUI requires a separate migration.
 
 ### Running the apps
 
@@ -62,7 +54,27 @@ is ad-hoc; registering an App ID is unnecessary. Distribution signing is not con
   :sharedLogic:jvmTest :androidApp:compileDebugKotlin
 ```
 
-The project uses `project.xcproj`, converted by Xcode 27.2 beta (27B5028f)
-through Project Format > JSON. Xcode 27+ can read the format; iOS Simulator
-and macOS builds were verified with stable Xcode 27.0. No global toolchain
-switch is required. See [implementation results](docs/native-macos-implementation.md).
+The project uses `project.pbxproj`. The JSON migration was reversed through
+Xcode's Project Format > Property List because Kotlin Gradle Plugin 2.4.20
+requires the pbxproj file during IDE Sync. Native macOS, synchronized folders
+and direct Kotlin integration are retained; no diagnostic tasks are disabled.
+See [implementation results](docs/native-macos-implementation.md).
+
+## Engineering instructions and style
+
+Start with [AGENTS.md](AGENTS.md) and the linked module instructions. Claude
+imports the same files through adjacent CLAUDE.md files. Accepted standards cover
+[architecture](docs/standards/architecture.md),
+[Kotlin](docs/standards/kotlin-style.md), [Swift](docs/standards/swift-style.md),
+and [verification commands](docs/standards/verification.md).
+
+Formatting is opt-in and applied only to intended files during adoption:
+
+```sh
+./gradlew spotlessCheck -PstyleFiles=build.gradle.kts
+xcrun swift-format lint --strict --configuration .swift-format macosApp/ContentView.swift
+```
+
+Full audits intentionally expose existing starter formatting debt; see
+[adoption results](docs/agent-guidelines-adoption.md). CI enforcement and bulk
+formatting are separate work.

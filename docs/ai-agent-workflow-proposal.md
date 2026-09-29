@@ -1,11 +1,21 @@
-# KMPNews: выжимка практик AI-assisted разработки
+# AI-assisted KMP research archive
 
-Дата: 2026-09-29. Проверенный checkout: `735400a`.
+Status: historical research, not active agent instructions. The inventory and
+proposals below describe the original starter before macOS/JSON migration and
+before the instruction rollout. They are preserved as research provenance; old
+version/status statements are not current setup guidance.
 
-> Update: sections 1-9 describe the original research baseline. See section 10 and [implementation results](native-macos-implementation.md) for the accepted decisions and actual implementation status.
+Current accepted rules: [root AGENTS](../AGENTS.md),
+[architecture](standards/architecture.md), [Kotlin style](standards/kotlin-style.md),
+[Swift style](standards/swift-style.md) and [verification](standards/verification.md).
+[Native macOS and format history](native-macos-implementation.md) records that earlier
+stage and the later rollback to project.pbxproj after an IDE Sync failure with
+Kotlin Gradle Plugin 2.4.20. JSON is no longer the active format.
+[Instruction adoption](agent-guidelines-adoption.md) records the instruction rollout.
+The new standards adapt the source practices; they do not mandate the example
+projects' libraries, shared ViewModels or agent orchestration.
 
-
-Статус: предложение правил и последовательности работ. Документ не означает, что миграции выполнены, платформы добавлены или проверки сборки пройдены. Исходный код и конфигурация приложения в этой задаче не менялись.
+## Historical research (original language retained)
 
 ## 1. Решения пользователя и текущее состояние
 
@@ -22,7 +32,7 @@
 
 Desktop JVM, запущенный на Mac или упакованный в DMG, не заменяет native macOS клиент. Под «native ViewModel» для JVM понимается собственная модель представления этого клиента, а не Android ViewModel внутри общего модуля.
 
-Проверенные файлы: [sharedLogic](../sharedLogic/build.gradle.kts), [sharedUI](../sharedUI/build.gradle.kts), [Android](../androidApp/build.gradle.kts), [Desktop](../desktopApp/build.gradle.kts), [Xcode project](../iosApp/iosApp.xcodeproj/project.xcproj).
+Проверенные файлы: [sharedLogic](../sharedLogic/build.gradle.kts), [sharedUI](../sharedUI/build.gradle.kts), [Android](../androidApp/build.gradle.kts), [Desktop](../desktopApp/build.gradle.kts), [Xcode project](../iosApp/iosApp.xcodeproj/project.pbxproj).
 
 ## 2. Что переносим из материалов
 
@@ -201,17 +211,21 @@ feature contracts and focused checks; link detailed architecture documents.
 This decision is retained for later implementation: no AGENTS files were created
 or replaced by this task.
 
-JSON migration is complete: Xcode 27.2 beta (27B5028f) converted the working
-project using File Inspector > Project Format > JSON. `project.xcproj` is now
-active and `project.pbxproj` is removed. Both targets' resolved Debug build
+JSON migration initially completed: Xcode 27.2 beta (27B5028f) converted the working
+project using File Inspector > Project Format > JSON. At that stage, `project.xcproj`
+became active and `project.pbxproj` was removed. Both targets' resolved Debug build
 settings are identical before/after conversion, including iOS signing team.
 Global selected Xcode remains 27.0. See the implementation report for validation.
 
 
-## 11. Stage closure
+## 11. Historical stage closure (JSON later reversed)
 
-Native macOS integration and Xcode JSON migration are completed and accepted
+Native macOS integration and Xcode JSON migration were completed and accepted
 for delivery on `dev` (2026-09-29). See the implementation report for the
 validation matrix and explicit limits. The AGENTS hierarchy remains an
 approved follow-up decision; creating those instruction files and separating
 Android/JVM sharedUI are outside this completed stage.
+
+The later user-approved rollback restored the Property List format through Xcode,
+preserving macOS and all subsequent settings. See the implementation report for
+the IDE compatibility diagnosis and rollback validation.

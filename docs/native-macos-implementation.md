@@ -1,14 +1,16 @@
-# Native macOS implementation and JSON migration status
+# Native macOS implementation and Xcode format history
 
-Status: **Completed** (2026-09-29).
+Status: **Native macOS completed; JSON migration reversed** (2026-09-29).
+The active configuration is `project.pbxproj`. See the rollback section below.
 
 Implemented on `features/native-macos-xcproj`, based on main `735400a`.
 Accepted for delivery on `dev` by the user after successful native macOS and
 JSON migration checks. Existing signing-team and Info.plist changes and the
 documentation directory are preserved in the delivered snapshot.
 
-Completion covers local development setup, native macOS integration and the
-Xcode JSON migration. The validation limitations below remain explicit;
+Original completion covered local development setup, native macOS integration
+and Xcode JSON migration. A later IDE Sync failure required reversing only the
+file format, preserving the native macOS implementation. The limitations remain explicit;
 distribution signing and the later AGENTS rollout are separate work.
 
 ## Implemented
@@ -31,12 +33,12 @@ distribution signing and the later AGENTS rollout are separate work.
   are scoped to macOS. Ad-hoc local signing, empty development team for macOS;
   existing iOS team `R568U3JDV4` is retained.
 
-## JSON migration: completed
+## Historical JSON migration (subsequently reversed)
 
 On 2026-09-29 the user installed Xcode 27.2 beta (`27B5028f`) at
 `/Applications/Xcode-beta.app`. The working project was converted using its
 File Inspector > Project Document > Project Format > JSON, then saved.
-**project.xcproj is now active; project.pbxproj was removed by Xcode.**
+At that stage, project.xcproj became active and Xcode removed project.pbxproj.
 The existing project container, configurations, target identities, synchronized
 folder membership and Kotlin build phases are retained. The macOS shared scheme
 is retained. Xcode corrected the stale iOS product reference display path to
@@ -53,7 +55,7 @@ the same stable toolchain and SDK. Stable Xcode 27.0 reads the JSON configuratio
 The pre-conversion pbxproj and comparison data are in
 `/tmp/kmpnews-json-migration/`.
 
-## Validation
+## Original implementation validation
 
 | Check | Result |
 | --- | --- |
@@ -89,5 +91,65 @@ Temporary baseline/settings/logs/screenshots are under
 `/tmp/kmpnews-native-macos-*.log`; these are local diagnostics, not durable CI
 artifacts. The source/configuration and this acceptance record are retained in the repository.
 
-The accepted root-plus-scoped AGENTS structure is recorded in section 10 of
-[the workflow proposal](ai-agent-workflow-proposal.md), for later implementation.
+The root-plus-scoped AGENTS rollout is recorded in
+[instruction adoption](agent-guidelines-adoption.md).
+
+## Property List rollback: 2026-09-29
+
+The installed Kotlin Gradle Plugin 2.4.20 registers `convertPbxprojToJson` and
+`checkXcodeProjectConfiguration` for IDE import. The producer requires an existing
+`project.pbxproj`; the consumer parses its legacy object structure. Xcode builds
+from project.xcproj worked, but Android Studio Sync failed on the missing input.
+The original build checks did not cover this IDE import path.
+
+The current project was converted using Xcode 27.2 beta's File Inspector >
+Project Document > Project Format > Property List and saved. Xcode generated
+`project.pbxproj` and removed `project.xcproj`. No old project snapshot was restored,
+and neither Kotlin diagnostic task was disabled. The selected build toolchain
+remains Xcode 27.0; no Kotlin, Gradle or Xcode upgrade was performed.
+
+Before conversion, the complete current container was copied to
+`/tmp/kmpnews-pbx-rollback/original.xcodeproj`. Baseline and resulting targets,
+schemes and Debug settings are stored alongside it. Both target settings
+dictionaries and the project listing match exactly before/after conversion.
+Native macOS, synchronized source folders, signing, the framework build scripts
+and AGENTS/CLAUDE membership exclusions are retained.
+
+The two diagnostic tasks completed successfully with both tasks executed on the
+first CLI run. Actual Android Studio **Sync Project with Gradle Files** completed
+at 20:16 local time and displayed `BUILD SUCCESSFUL in 21s` and a finished result.
+This verifies IDE import directly, rather than inferring success from a CLI build.
+
+| Rollback check | Result |
+| --- | --- |
+| Xcode close and reopen | Passed; both targets visible and Property List shown in File Inspector |
+| Targets, schemes and resolved Debug settings | Identical before/after for iOS Simulator and macOS |
+| Kotlin Xcode diagnostics | Passed; initial execution and repeat using configuration cache, no skipped/disabled checks |
+| Android Studio Sync | Passed through the actual IDE action |
+| iOS Simulator Debug build | Passed with signing disabled for the simulator |
+| Native macOS Debug build | Passed with the existing local signing configuration |
+| Resource membership | Neither built app contains AGENTS.md or CLAUDE.md; macOS synchronized-folder exceptions retained |
+| Preservation | Source and Gradle script hashes, shared schemes and workspace metadata unchanged from the pre-rollback state |
+
+Both builds used stable Xcode 27.0 and a fresh derived-data directory:
+
+```sh
+./gradlew :sharedLogic:convertPbxprojToJson :sharedLogic:checkXcodeProjectConfiguration
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug \
+  -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /tmp/kmpnews-pbx-rollback/build build CODE_SIGNING_ALLOWED=NO
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme macosApp -configuration Debug \
+  -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath /tmp/kmpnews-pbx-rollback/build build
+```
+
+This rollback did not rerun Release, runtime interactions or distribution signing.
+No product source/API changed. Existing Gradle deprecation and build-tool warnings
+remain outside this format-only correction. The rollback was initially left
+uncommitted; on 2026-09-30 the user authorized delivery to dev together with the
+completed agent-instruction task.
+
+Keep the Property List format until a future Kotlin plugin's JSON support is
+verified with both real IDE Sync and Apple builds. Logs and comparison snapshots
+for this rollback are in `/tmp/kmpnews-pbx-rollback`; temporary files are local
+diagnostics, not durable CI artifacts.
