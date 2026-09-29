@@ -3,10 +3,11 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Desktop (JVM), an
 - [sharedLogic](sharedLogic/src) owns shared domain/data, with portable code in
   [commonMain](sharedLogic/src/commonMain/kotlin) and platform implementations in
   their source sets.
-- [androidApp](androidApp), [desktopApp](desktopApp), [iosApp](iosApp/iosApp) and
-  [macosApp](macosApp) own client UI and native ViewModels for new features.
-- [sharedUI](sharedUI/src) remains the existing Android/JVM starter only. New
-  presentation belongs in each client; removing sharedUI requires a separate migration.
+- [sharedUI](sharedUI/src) owns shared Compose screens, ViewModels and presentation
+  contracts for Android/JVM Desktop. [androidApp](androidApp) and
+  [desktopApp](desktopApp) own their platform entry points and lifecycle integration.
+- [iosApp](iosApp/iosApp) and [macosApp](macosApp) own native SwiftUI presentation
+  and Swift ViewModels over the same shared domain/data.
 
 ### Running the apps
 
@@ -67,6 +68,10 @@ imports the same files through adjacent CLAUDE.md files. Accepted standards cove
 [architecture](docs/standards/architecture.md),
 [Kotlin](docs/standards/kotlin-style.md), [Swift](docs/standards/swift-style.md),
 and [verification commands](docs/standards/verification.md).
+The [accepted stack](docs/standards/technology-stack.md) records Koin/Ktor/Room,
+Compose and Apple choices, MVVM/MVI ownership and the NewsData.io Free prototype
+boundary. Dependency integration and the feed/cache implementation are upcoming;
+selected technologies are not all installed or compatibility-tested yet.
 
 Formatting is opt-in and applied only to intended files during adoption:
 

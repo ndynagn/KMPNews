@@ -60,7 +60,7 @@ Formatting does not enforce architectural boundaries or infer semantic spacing.
 | Formatter/build tooling | Gradle configuration, positive/negative temporary samples, idempotence, scoped-file isolation, no application auto-format task |
 | Shared domain/data | Relevant deterministic tests and affected-target compilation |
 | Exported shared API / interop | Kotlin client and both Swift-client compilation; async/error/cancellation runtime scenario when changed |
-| Native ViewModel | State transitions, expected errors, cancellation and subscription ownership with controlled dependencies |
+| Compose or Swift ViewModel | MVVM/MVI transitions, expected errors, cancellation, effect delivery and ownership with controlled dependencies |
 | Client UI | Build, launch, scenario, accessibility and visual check at relevant widths/text sizes |
 | Desktop/window lifecycle | Close/reopen, independent windows when supported, focus/keyboard and task disposal |
 | Xcode membership/configuration | Target/settings diff, affected build and bundle membership; signing/export verified separately |
@@ -89,6 +89,37 @@ not prove news-reader behavior. New behavior needs meaningful assertions, contro
 clock/network and fakes. Real service smoke checks supplement deterministic tests.
 If an environment is unavailable, report the limitation, not PASS.
 
+## Dependency and interop admission gate
+
+The [accepted stack](technology-stack.md) is a selection, not a passing build.
+Before feature implementation relies on newly connected dependencies, pin and
+validate the smallest integration slice with the current toolchain:
+
+1. Resolve the complete graph for Android, JVM, iosArm64, iosSimulatorArm64 and
+   macosArm64. Check compiler plugins, Room/KSP/SQLite, Ktor engine/transitive
+   versions and Swift packages together; metadata alone is insufficient.
+2. Compile both Compose clients and both Swift clients; compile/link the iOS
+   device framework too. Perform real IDE Sync after build integration changes.
+   Record exact versions, commands and environment, with unavailable checks marked.
+3. Verify Koin construction using controlled dependencies, Ktor serialization and
+   failure mapping with fixtures, and real Room create/write/read/reopen behavior
+   on Android, JVM, iOS Simulator and native macOS. Add schema/migration checks
+   when there is a real schema; a fake DAO does not verify the SQLite driver.
+4. In both Swift clients, consume typed shared models and a Flow; exercise suspend
+   success, expected failure and cancellation. Cancel a Swift task and verify the
+   Kotlin job/collector terminates. Verify resubscription and absence of observers
+   after screen/window disposal. Test explicit Flow failure values without allowing
+   an exception to escape into Swift.
+5. For presentation dependency integration, verify Navigation3 back-stack ownership
+   and image loading/failure/cancellation on affected clients. Desktop close/reopen
+   and independent windows must not leak tasks or dispose app-scoped services.
+
+Run shared deterministic tests plus the relevant native/runtime checks. Use
+provider fixtures independent of credentials; an optional real API smoke does
+not replace those tests. Keep template arithmetic test success separate. A failed
+gate blocks reliance on that integration, not unrelated documentation or domain
+work. Do not change toolchains to make a gate pass without a separate decision.
+
 ## Instruction loading and review scenarios
 
 Start fresh sessions from the repository and a relevant module. Ask the agent to
@@ -100,10 +131,13 @@ modify user-wide settings to validate this repository.
 | Scenario | Expected routing and decision |
 | --- | --- |
 | Change shared article ordering | Root + sharedLogic + relevant feature contract; shared domain owns the rule; deterministic tests; check consumers if public API changes |
-| Add an Android screen | Root + androidApp + Kotlin + feature contract; native ViewModel, no new sharedUI feature; client build and UI evidence |
+| Add a shared Compose screen | Root + sharedUI + Kotlin + feature contract; shared ViewModel and chosen MVVM/MVI; Android/Desktop rules for host integration; both client builds and UI evidence |
 | Fix a Swift task leak | Root + owning Apple client + Swift + feature lifecycle; cancellation/owner validation; no assumption that deinit alone is enough |
-| Reuse a card on a second independent screen | Root + client + feature rules; move to nearest shared feature/presentation/UI-kit scope according to coupling; no shared Kotlin UI |
+| Close a Desktop window | Root + desktopApp + sharedUI + feature lifecycle; dispose window/navigation ViewModel ownership and collectors, keep other windows and app services alive |
+| Reuse a card on a second independent screen | Root + presentation owner + feature rules; nearest feature/component/UI-kit scope; sharedUI for Compose, client-local Swift components |
 
 Keep source-level product tests separate from these instruction-routing checks.
-See [adoption results](../agent-guidelines-adoption.md) for this stage's evidence
-and known formatting debt.
+See [initial adoption results](../agent-guidelines-adoption.md) for historical
+evidence and formatting debt, and [stack update results](../stack-architecture-adoption.md)
+for the current routing review. Structural import validation is not proof of a
+fresh Codex/Claude runtime session; report those checks separately.

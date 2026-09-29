@@ -2,25 +2,29 @@
 
 Status: accepted engineering rules. These rules apply to new work; documented
 starter exceptions are migration debt, not reference implementations.
+The [accepted stack](technology-stack.md) records technology choices, prototype
+constraints and compatibility status; it is not evidence of installed dependencies.
 
 ## Structure and dependency direction
 
 Keep existing deployment/build modules. In Kotlin, use packages under
 `com.ndynagn.kmp.news.feature.<name>` with `domain` and `data` in sharedLogic;
-client presentation uses `feature.<name>.presentation`. Feature names are lowercase
+shared Compose presentation uses `feature.<name>.presentation` in sharedUI.
+Android/Desktop hosts contain platform integration and adapters. Feature names are lowercase
 package segments (for example `savedarticles`, never `saved-articles`). Swift
 clients use `Features/<FeatureName>`, with Views and ViewModels owned by the client.
 Create only directories that have a real responsibility and implementation.
 
 Code dependencies are `presentation -> domain <- data`. Runtime calls travel from
-View to native ViewModel to domain contracts, fulfilled by data implementations.
+View to its presentation ViewModel to domain contracts, fulfilled by data implementations.
 The composition root is allowed to know concrete implementations to assemble the
 application. Domain never imports the composition root or data implementations.
 
 - Domain: immutable business models, repository contracts and business operations.
 - Data: transport/storage models, data sources, repository implementations and
   explicit mappers. External SDK objects do not leak through domain contracts.
-- Presentation: platform-local ViewModels, UI state and rendering/navigation.
+- Presentation: sharedUI owns Compose Views, ViewModels, state and navigation for
+  Android/Desktop; iOS/macOS each own Swift Views, ViewModels and navigation.
 
 Cross-feature dependencies use another feature's public domain contracts, not
 its data/presentation internals. Extract a common domain concept only after real
@@ -35,7 +39,8 @@ reuse appears. Shared technical services must have a concrete name and scope;
 | Use case | Business policy, coordinating dependencies or reusable operations | Forwarding one repository call with no added meaning |
 | Explicit mapper/adapter | Translating a real transport, storage or platform boundary | Reflection-based hidden mapping and DTO leakage |
 | Constructor injection | Supplying collaborators through a composition root | Service locators and global mutable dependencies |
-| Native MVVM with UDF | Producing screen state and handling user actions | Shared ViewModels or compulsory reducers for simple screens |
+| MVVM with UDF | Simple screen state and independent user actions | Compulsory reducers or event buses for simple screens |
+| MVI | Coupled transitions, competing requests or complex coordination | Naming ordinary callbacks Intent without explicit transition rules |
 | Composition | Combining focused behavior/components | BaseViewModel/BaseRepository hierarchies without a demonstrated need |
 
 KISS/YAGNI mean implementing the agreed contract without speculative layers.
@@ -43,6 +48,41 @@ DRY means sharing the same responsibility, not merging similar-looking code with
 different platform semantics. Introduce a Gradle module only for a concrete
 isolation/build/dependency requirement; package-level feature boundaries suffice
 for the starter.
+
+Koin assembles Kotlin dependencies in DI modules/composition roots. Constructor
+parameters express dependencies in ordinary classes: no KoinComponent, global
+`get()` or hidden service lookup in repositories, business operations or ViewModels.
+DI definitions may resolve collaborators. Host/route factories are composition
+boundaries, not permission to resolve services throughout the UI tree. Swift roots
+obtain typed shared dependencies and pass them to Swift ViewModel initializers.
+Never make a screen ViewModel an app-wide singleton.
+
+## Presentation contracts
+
+Both patterns use unidirectional state flow. A feature contract records the choice
+and why it fits the interactions, rather than selecting by screen size or number
+of widgets. MVVM exposes immutable UiState and named action methods. MVI separates
+View, ViewModel, UiState, Intent and Effect into focused files. Its ViewModel owns
+coordination; a pure reducer computes state transitions, with I/O outside it.
+Internal operation results may have their own transition inputs; do not mislabel
+them as user intentions. No MVI framework or universal BaseViewModel is required.
+
+Use a data class (Swift struct) for composable state; use sealed types (Swift enum
+with associated values) for mutually exclusive variants. Content can coexist with
+refresh or an append failure. Avoid contradictory loading/error booleans and do
+not require every state to be a sealed hierarchy. Presentation types stay outside
+sharedLogic, including when Compose and Swift implement the same business feature.
+
+Intent names incoming MVI actions; Effect names one-time output signals. Specify
+each effect's owner, subscriber, buffering/replay, handling on recreation and
+behavior without a subscriber. A SharedFlow or Channel alone does not guarantee
+delivery. Keep results needed to complete a scenario in state; a UI feedback
+notification may be transient. Navigation remains in the presentation stack.
+Do not add empty effect types or buses when a feature has no one-time outputs.
+
+Specify request coordination per feature: cancellation/replacement, serial work,
+or allowed overlap, and how stale responses are handled. Do not invent one global
+concurrency policy. Test transitions and asynchronous coordination independently.
 
 ## Contracts, data and concurrency
 
@@ -56,14 +96,25 @@ Make expected failures part of the contract and preserve cancellation. Avoid
 catch-all handlers that turn cancellation into an error screen. Own every task,
 subscription and resource: distinguish application, window, screen and request
 scopes. Inject time and external services where deterministic tests require them.
-Do not prescribe a networking/database/serialization/DI/interop library here.
-Choose one supported interop approach before exposing async Kotlin operations to
-Swift; verify actual consumer behavior, including cancellation and errors.
+The accepted stack selects Ktor/serialization, Room and SKIE. Admission requires
+the [compatibility gate](verification.md#dependency-and-interop-admission-gate).
+Shared public contracts expose domain values, never HTTP/Room types, transport
+DTOs or PagingData. Define portable pagination usable by both Kotlin and Swift.
+SKIE-exported Flows must not leak unhandled exceptions: represent expected
+failures explicitly and preserve cancellation. Test both observation and suspend
+calls in Swift; Kotlin compilation alone does not establish safe interop.
 
-Views send actions; native ViewModels publish controlled state and delegate
+Every cached feature defines source-of-truth, freshness/retention, refresh/append
+behavior and the result of a failed read or write. Never disguise failed network
+work as successful empty data. If cached content is retained on failure, preserve
+the failure/freshness information required by the contract. Decide identity,
+deduplication and pagination from the provider/product contract, not sample code.
+
+Views send actions; presentation ViewModels publish controlled state and delegate
 business policy to shared domain. UI-local toggles/focus/selection may stay local.
-Navigation and transient effects remain platform-owned. Define replay, missed
-subscriber and lifecycle behavior before choosing an event channel. No blanket
+Navigation and transient effects belong to shared Compose or native Swift
+presentation. Define replay, missed-subscriber and lifecycle behavior before
+choosing an event channel. No blanket
 rule says every transient UI interaction needs a separate event bus.
 
 ## Component ownership and reuse
@@ -75,20 +126,21 @@ move it to the nearest scope that represents both consumers:
 | Consumers / coupling | Destination |
 | --- | --- |
 | Multiple owners in one feature | Feature presentation/components |
-| Multiple features, domain-independent visual primitive | Platform-local UI kit |
+| Multiple features, domain-independent visual primitive | sharedUI kit for Compose; client UI kit for Swift |
 | Multiple screens, shared domain-aware presentation | Named reusable presentation components |
 | Multiple domain/data owners | Named reusable scope in that layer |
 
 Repeating ArticleRow for many articles inside one list is one consumer. A row
 used by both search and saved-article screens has two consumers. Extract it with
 explicit data/callback inputs; do not pass a whole feature ViewModel. A generic
-UI kit does not fetch articles or own repository dependencies. Reuse never creates
-cross-client shared UI.
+UI kit does not fetch articles or own repository dependencies. Android/Desktop
+reuse Compose presentation in sharedUI; Apple clients retain native Swift UI.
 
 ## Transitional exceptions and feature instructions
 
-Android/Desktop still depend on sharedUI. iOS ContentView directly invokes the
-starter Greeting. macOS GreetingViewModel constructs a synchronous Greeting.
+Android/Desktop intentionally depend on sharedUI. Its starter App constructs
+Greeting directly; iOS ContentView invokes Greeting, and macOS GreetingViewModel
+constructs a synchronous Greeting.
 These minimal starter paths remain unchanged until a separate migration; new
 feature code follows the boundaries and injection rules above.
 
@@ -115,3 +167,9 @@ cases. Our code dependency direction explicitly keeps domain independent of data
 Android's [domain-layer guide](https://developer.android.com/topic/architecture/domain-layer)
 also treats use cases as useful where behavior/complexity warrants them, rather
 than requiring pass-through layers for every call.
+
+The [Compose sample](https://gitlab.com/effectivepublic/android/compose-sample)
+informs feature organization, explicit mapping and screen contracts. Its older
+dependencies are not our version baseline. Keep repository contracts in domain,
+do not expose Android PagingData to Swift, and do not copy effect delivery or base
+class patterns without a feature-specific reason.

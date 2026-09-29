@@ -16,31 +16,36 @@ only import it. Keep instructions and new engineering documentation in English.
 | JVM Desktop client                              | [desktopApp/AGENTS.md](desktopApp/AGENTS.md)   | Kotlin                                                                                   |
 | iOS client and the shared Apple project         | [iosApp/AGENTS.md](iosApp/AGENTS.md)           | [Swift](docs/standards/swift-style.md)                                                   |
 | Native macOS client                             | [macosApp/AGENTS.md](macosApp/AGENTS.md)       | Swift; also iOS instructions for project configuration                                   |
-| Existing shared Compose starter                 | [sharedUI/AGENTS.md](sharedUI/AGENTS.md)       | Kotlin                                                                                   |
+| Shared Android/Desktop Compose presentation      | [sharedUI/AGENTS.md](sharedUI/AGENTS.md)       | Kotlin and Architecture                                                                  |
 | Root Gradle/configuration                       | This file                                      | Kotlin and [Verification](docs/standards/verification.md)                                |
 
 Read the linked language standard when changing that language, and the
 architecture standard for new features or changes to boundaries/public APIs.
+Read the [accepted stack](docs/standards/technology-stack.md) before dependency
+or integration work. Android/Desktop feature work also requires sharedUI rules;
+read the host module rules when changing platform integration or lifecycle.
 Feature-specific contracts refine these rules; see the
 [feature instruction template](docs/templates/feature-agents.md).
 
 ## Architecture invariants
 
-- Shared Kotlin owns domain/data. Each client owns UI, navigation, screen state
-  and its native ViewModel. Never add shared ViewModels or presentation services
-  to `sharedLogic` under another name.
+- `sharedLogic` owns domain/data for all clients, never ViewModels, screen state
+  or presentation services. `sharedUI` owns shared Compose presentation, including
+  ViewModels and navigation, for Android/Desktop. iOS/macOS own Swift presentation.
 - New code is feature-first inside existing modules. Code dependencies are
   `presentation -> domain <- data`; domain does not import data implementations.
-- Views render state and forward actions to native ViewModels. Business policy
+- Views render state and forward actions to presentation ViewModels. Business policy
   belongs in shared logic. DTOs and storage/transport types stay in data.
-- Use constructor injection and app composition roots. Add interfaces, use cases
-  and modules for concrete boundaries or behavior, not as empty scaffolding.
+- Use constructor injection; Koin assembles Kotlin dependencies in composition
+  roots/DI modules, not through service lookup in ordinary classes. Add interfaces,
+  use cases and modules for concrete boundaries or behavior, not empty scaffolding.
 - Do not invent API fields, business rules, product features or design decisions.
   Record an unresolved contract, affected scope and exact unblock condition in
   the task or feature document; continue independent work.
-- Current exceptions are limited to the starter: Android/Desktop consume
-  `sharedUI`, and iOS calls Greeting from its View. They are not examples for new
-  features. Their migration is separate work.
+- Use MVVM for simple screens and MVI for complex transitions/concurrent work,
+  following the architecture standard. Record the choice in the feature contract.
+- Existing direct Greeting construction/calls are starter exceptions, not examples
+  for new features. Android/Desktop sharing presentation is an accepted boundary.
 
 ## Readability and reuse
 
@@ -52,9 +57,9 @@ Feature-specific contracts refine these rules; see the
 - Screens and ViewModels have separate files. Small private helpers and previews
   may stay with their single owner. On a second independent consumer, move a
   component to the nearest shared scope: feature components, reusable components
-  of its layer, or the platform UI kit. Repeated list rows are one consumer.
-- Generic UI-kit components do not own feature data or ViewModels. Never use
-  reuse as a reason to restore cross-client shared UI.
+  of its layer, or the appropriate UI kit. Repeated list rows are one consumer.
+- Generic UI-kit components do not own feature data or ViewModels. Compose reuse
+  belongs in sharedUI; keep Swift UI native to its Apple client.
 - Comments explain intent, constraints and non-obvious tradeoffs. Document public
   shared contracts, including error/cancellation semantics; avoid narrating code.
 

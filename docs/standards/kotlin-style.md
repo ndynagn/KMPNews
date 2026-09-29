@@ -80,3 +80,23 @@ Document public domain behavior and errors; comments explain why, not each line.
 
 Formatting is explicit and restricted to intended files during adoption. See
 [verification](verification.md) for commands and existing-debt handling.
+
+## Presentation contract naming
+
+Use feature-prefixed files such as `FeedScreen.kt`, `FeedViewModel.kt` and
+`FeedUiState.kt`. For MVI, add `FeedIntent.kt`, `FeedEffect.kt` when outputs exist,
+and `FeedReducer.kt` for the pure transition logic. Prefer sealed interfaces for
+closed Intent/Effect alternatives and data classes for composable UiState; use
+sealed state variants only for mutually exclusive cases. These names illustrate
+the pattern, not a requirement to scaffold a feature or empty types.
+
+Expose `StateFlow<FeedUiState>` rather than MutableStateFlow; `_state` remains the
+permitted private backing pair. Use explicit action methods for MVVM and a clearly
+named `onIntent(intent: FeedIntent)` boundary for MVI. Keep side-effect execution
+out of reducers and keep Flow collectors out of immutable UiState values.
+Shared Compose contracts live in sharedUI, never sharedLogic.
+
+Use constructor parameters with meaningful names for Koin-provided collaborators.
+DI resolution syntax belongs to composition, not domain/data methods. DTOs and
+Room entities use role-specific names and explicit mappings into domain models;
+do not add serialization/database annotations to domain to avoid a mapper.

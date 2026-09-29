@@ -4,6 +4,7 @@ Scope: this module, including its Gradle configuration and all source sets.
 Read [architecture](../docs/standards/architecture.md),
 [Kotlin style](../docs/standards/kotlin-style.md) and
 [verification](../docs/standards/verification.md).
+Dependency choices and admission gates: [accepted stack](../docs/standards/technology-stack.md).
 
 - Put portable business models/contracts/operations in `commonMain`, organized
   by feature. Data implementations depend on domain contracts, not vice versa.
@@ -17,12 +18,25 @@ Read [architecture](../docs/standards/architecture.md),
 - Keep exported Kotlin APIs small and usable from Swift. Check nullability,
   collections, names and errors in a Swift consumer. Do not expose implementation
   generics or platform-driver objects just because Kotlin callers can use them.
+- Repository contracts live in domain; implementations, Ktor/serialization DTOs,
+  Room entities/DAOs and mapping live in data. Never export HTTP/Room types or
+  `PagingData` through domain contracts; pagination must be usable from Swift.
+- Define cache freshness, refresh, pagination and failure behavior in the feature
+  contract. A failed request is not a successful empty result. Do not infer a
+  retention period or fallback from a library example.
 - Shared operations must be safe to invoke from UI contexts. Give coroutines an
   explicit owner, preserve cancellation, and inject clocks/dispatchers/services
   where behavior needs control in tests. Never add `GlobalScope` work.
-- Current Apple output is the static `SharedLogic` framework with direct Xcode
-  integration. Do not add SKIE, Swift export, another coroutine bridge, a DI
-  framework, network client or database without a separate compatibility decision.
+- Keep the static `SharedLogic` framework and direct Xcode integration. SKIE is
+  the selected async bridge; verify pinned versions before integration. Export
+  expected failures as explicit models; no unhandled exceptions may escape an
+  exported Flow. Preserve cancellation rather than wrapping it as a failure.
+- Keep Koin wiring outside domain/data behavior. Expose typed construction entry
+  points for Swift composition roots; do not require Swift callers to locate
+  dependencies through the Koin container.
+- For the NewsData.io Free prototype, keep the API key out of tracked files,
+  fixtures and logs, including query URLs. Direct-client access does not hide
+  the key in distributed binaries; follow the stack document's prototype boundary.
 - Test shared behavior with deterministic fakes/fixtures. Changes to exported API
   require compilation of Kotlin clients and both Swift clients. Platform behavior
   needs tests in the matching source set; common tests alone are insufficient.

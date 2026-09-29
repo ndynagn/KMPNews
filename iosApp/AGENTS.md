@@ -6,11 +6,17 @@ Read [Swift style](../docs/standards/swift-style.md),
 
 - Put new client features under `iosApp/Features/<FeatureName>` (inside the Swift
   source folder). Each screen has a separate native Swift ViewModel.
-- Use explicit `@MainActor` observable ViewModels and controlled mutation.
+- Use explicit `@MainActor @Observable` ViewModels and controlled mutation.
   The existing direct Greeting call in ContentView is a starter exception only.
 - Views render state and send actions. Use an owned task/lifecycle trigger with
   deliberate repeatability and cancellation; never start data work in `body`.
   Async bridges must preserve cancellation and documented error semantics.
+- Consume shared domain/data through SharedLogic and the selected SKIE bridge;
+  inject dependencies through Swift initializers. Do not duplicate Kotlin
+  repositories/storage or expose Koin lookup inside Swift ViewModels.
+- Use NavigationStack/NavigationSplitView as appropriate and Nuke/NukeUI for
+  images, following the [accepted stack](../docs/standards/technology-stack.md).
+  Screen MVVM/MVI contracts use native Swift types as defined in Swift style.
 - Use native navigation, accessibility, localization and client-owned UI-kit
   components. Do not expose transport DTOs to Views. Previews use deterministic
   data; they must not perform live network calls.

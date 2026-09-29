@@ -7,12 +7,16 @@ Read [Swift style](../docs/standards/swift-style.md),
 
 - Native SwiftUI/AppKit, Apple Silicon, macOS 14+. Keep the separate `macosApp`
   target/scheme, bundle identifier and local ad-hoc signing configuration.
-- New features live in `Features/<FeatureName>`; screens and `@MainActor`
-  observable ViewModels have separate files. Use controlled mutation and explicit
+- New features live in `Features/<FeatureName>`; screens and `@MainActor @Observable`
+  ViewModels have separate files. Use controlled mutation and explicit
   ownership; the ViewModel belongs to its window/navigation scope.
 - SwiftUI `body` must not initiate data work. Define task triggers, repeatability
   and cancellation. Closing a window disposes window-owned tasks/subscriptions;
   app-scoped services remain available to other windows.
+- Use SharedLogic domain/data through SKIE, injecting collaborators through Swift
+  initializers. Do not duplicate repositories/databases in Swift. Follow the
+  [accepted stack](../docs/standards/technology-stack.md) for Nuke/NukeUI and native
+  navigation; define MVVM/MVI contracts using the Swift style standard.
 - Prefer native menus, shortcuts, focus behavior, accessibility and localization.
   Validate resizable layouts, minimum supported size and long text. Do not copy
   mobile navigation mechanically into the desktop client.

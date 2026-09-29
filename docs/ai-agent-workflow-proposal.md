@@ -3,7 +3,12 @@
 Status: historical research, not active agent instructions. The inventory and
 proposals below describe the original starter before macOS/JSON migration and
 before the instruction rollout. They are preserved as research provenance; old
-version/status statements are not current setup guidance.
+version/status statements are not current setup guidance. In particular, all
+instructions below to separate/remove sharedUI and restrict shared Compose
+ViewModels are superseded by the accepted 2026-09-30
+[stack decision](standards/technology-stack.md): sharedUI owns Android/Desktop
+presentation; sharedLogic remains domain/data only. Historical library-neutral
+recommendations do not override the selected stack.
 
 Current accepted rules: [root AGENTS](../AGENTS.md),
 [architecture](standards/architecture.md), [Kotlin style](standards/kotlin-style.md),
@@ -194,7 +199,7 @@ macosApp   : SwiftUI/AppKit + Swift ViewModel ─────┘
 
 Независимые пункты 2 и 3 не обязаны блокировать друг друга. До реализации остаются продуктовые решения: источник новостей/API и лицензия контента, MVP-функции, полный текст или внешняя ссылка, offline/закладки, поддерживаемые Desktop OS, минимальная macOS и Intel. Эти решения нельзя выводить из примеров статей.
 
-## 10. Accepted follow-up decisions and implementation status
+## 10. Historical follow-up decisions and implementation status
 
 The preceding inventory describes the baseline before implementation.
 Native macOS is now implemented for Apple Silicon, macOS 14+, with a native

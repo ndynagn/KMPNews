@@ -54,7 +54,7 @@ Semantic grouping is reviewed by a human/agent; the formatter does not infer it.
 
 ## Observation, tasks and interoperability
 
-Use explicit `@MainActor` observable native ViewModels, even when one target's
+Use explicit `@MainActor @Observable` native ViewModels, even when one target's
 compiler configuration supplies default isolation. Views render and send actions;
 local UI state is allowed. Define stable ownership with SwiftUI state tools and
 ensure ViewModel recreation does not accidentally restart business operations.
@@ -68,6 +68,27 @@ Do not use force unwraps/force try to hide an error path. A proven invariant nee
 a local explanation. Keep expected domain failures distinct from cancellation.
 Kotlin interop semantics must be checked with a Swift consumer, not guessed from
 Kotlin tests. Previews use controlled data and no live network calls.
+
+SKIE is the selected bridge: consume Flow through AsyncSequence and suspend work
+through its cancellable async interface after the compatibility gate passes.
+Swift tasks remain owned by the screen/window; Observation itself does not own
+or cancel them. Expected failures arrive as shared contract values; do not rely
+on do/catch to recover unhandled Kotlin exceptions escaping an exported Flow.
+Use typed initializer injection, not Koin lookup inside Swift Views/ViewModels.
+Reuse SharedLogic data/domain rather than adding Swift network/database copies.
+
+For MVVM use a feature-prefixed UiState struct and explicit action methods. For
+MVI keep View, ViewModel, UiState, Intent, Effect (when needed) and reducer in
+separate focused files. Use Swift enums with associated values for closed
+Intent/Effect or mutually exclusive state alternatives. Apply the same transition
+and effect-delivery contract as Compose, without importing its presentation types.
+Keep the reducer pure and perform async work outside it.
+
+Use NavigationStack/NavigationSplitView according to the native experience and
+Nuke/NukeUI for images once admitted by the [stack gate](technology-stack.md).
+Do not use a networking/image library choice as permission to duplicate business
+requests outside sharedLogic. Retain the current Swift language mode and deployment
+targets while validating these dependencies.
 
 Use client resources/localization and platform tokens. Do not hardcode production
 copy or invent designs when a task requires an exact supplied design. Inspect the

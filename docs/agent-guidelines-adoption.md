@@ -2,6 +2,12 @@
 
 Status: **Completed and accepted for delivery to dev** (2026-09-30).
 
+This is the historical initial rollout report. Its former sharedUI restrictions
+and routing conclusions are superseded by the
+[accepted stack](standards/technology-stack.md) and
+[stack instruction update](stack-architecture-adoption.md). Preserve the original
+verification evidence below; it does not validate the newly selected dependencies.
+
 Implemented on 2026-09-29 in `features/agent-guidelines`, based on `dev` at
 `7db7476`. The user requested task closure and commit/push to `dev` on 2026-09-30.
 Closure retains the documented verification limits: Claude's fresh-session check
