@@ -39,9 +39,9 @@ Dependency choices and admission gates: [accepted stack](../docs/standards/techn
 - Keep Koin wiring outside domain/data behavior. Expose typed construction entry
   points for Swift composition roots; do not require Swift callers to locate
   dependencies through the Koin container.
-- For the NewsData.io Free prototype, keep the API key out of tracked files,
-  fixtures and logs, including query URLs. Direct-client access does not hide
-  the key in distributed binaries; follow the stack document's prototype boundary.
+- Feed requests go through the Supabase mediator. Clients receive only public
+  project configuration; NewsData and privileged Supabase keys stay on the server.
+  Never add a direct-provider fallback or credentials to query URLs.
 - Test shared behavior with deterministic fakes/fixtures. Changes to exported API
   require compilation of Kotlin clients and both Swift clients. Platform behavior
   needs tests in the matching source set; common tests alone are insufficient.

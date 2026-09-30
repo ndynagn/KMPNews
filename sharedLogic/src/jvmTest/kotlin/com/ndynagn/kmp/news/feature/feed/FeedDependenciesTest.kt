@@ -1,6 +1,7 @@
 package com.ndynagn.kmp.news.feature.feed
 
 import com.ndynagn.kmp.news.feature.feed.data.local.openFeedDatabase
+import com.ndynagn.kmp.news.feature.feed.di.FeedApiConfiguration
 import com.ndynagn.kmp.news.feature.feed.di.assembleFeedDependencies
 import com.ndynagn.kmp.news.feature.feed.di.configureFeedHttpClient
 import com.ndynagn.kmp.news.feature.feed.di.createFeedDependenciesWithClient
@@ -43,7 +44,7 @@ class FeedDependenciesTest {
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
             },
-        ) { configureFeedHttpClient() }
+        ) { configureFeedHttpClient(feedConfiguration) }
         val secondClient = HttpClient(
             MockEngine {
                 respond(
@@ -51,9 +52,9 @@ class FeedDependenciesTest {
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
             },
-        ) { configureFeedHttpClient() }
-        val first = assembleFeedDependencies(firstDatabase, firstClient, "fixture-key")
-        val second = assembleFeedDependencies(secondDatabase, secondClient, "fixture-key")
+        ) { configureFeedHttpClient(feedConfiguration) }
+        val first = assembleFeedDependencies(firstDatabase, firstClient, feedConfiguration)
+        val second = assembleFeedDependencies(secondDatabase, secondClient, feedConfiguration)
         var firstClosed = false
 
         try {
@@ -96,10 +97,10 @@ class FeedDependenciesTest {
     fun ownerClosesClientAndDatabaseWhenContainerCloseFails() = runTest {
         val directory = Files.createTempDirectory("kmpnews-close-").toFile()
         val database = openFeedDatabase(directory.resolve("feed.db").path)
-        val client = HttpClient(MockEngine { respond("unused") }) { configureFeedHttpClient() }
+        val client = HttpClient(MockEngine { respond("unused") }) { configureFeedHttpClient(feedConfiguration) }
         val failure = IllegalStateException("container close")
         var closes = 0
-        val owner = assembleFeedDependencies(database, client, "fixture-key") { application ->
+        val owner = assembleFeedDependencies(database, client, feedConfiguration) { application ->
             application.koin.loadModules(
                 listOf(
                     module {
@@ -139,7 +140,7 @@ class FeedDependenciesTest {
     fun failedInitializationClosesAcquiredGraphAndPreservesCancellation() = runTest {
         val directory = Files.createTempDirectory("kmpnews-initialize-").toFile()
         val database = openFeedDatabase(directory.resolve("feed.db").path)
-        val client = HttpClient(MockEngine { respond("unused") }) { configureFeedHttpClient() }
+        val client = HttpClient(MockEngine { respond("unused") }) { configureFeedHttpClient(feedConfiguration) }
         val cancellation = CancellationException("initialization cancelled")
         var application: KoinApplication? = null
 
@@ -147,7 +148,7 @@ class FeedDependenciesTest {
             database.feedDao().read()
 
             val thrown = assertFailsWith<CancellationException> {
-                assembleFeedDependencies(database, client, "fixture-key") {
+                assembleFeedDependencies(database, client, feedConfiguration) {
                     application = it
                     it.koin.get<NewsRepository>()
                     throw cancellation
@@ -183,7 +184,7 @@ class FeedDependenciesTest {
             database.feedDao().read()
 
             val thrown = assertFailsWith<IllegalStateException> {
-                createFeedDependenciesWithClient(database, "fixture-key") { throw failure }
+                createFeedDependenciesWithClient(database, feedConfiguration) { throw failure }
             }
 
             assertSame(failure, thrown)
@@ -199,3 +200,5 @@ class FeedDependenciesTest {
 
     private class CloseMarker
 }
+
+private val feedConfiguration = FeedApiConfiguration("https://fixture.supabase.co", "sb_publishable_fixture-key")

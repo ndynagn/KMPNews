@@ -1,33 +1,46 @@
-import SwiftUI
 import SharedLogic
+import SwiftUI
 
 struct ContentView: View {
-    @State private var showContent = false
-    var body: some View {
-        VStack {
-            Button("Click me!") {
-                withAnimation {
-                    showContent = !showContent
-                }
-            }
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var selected = 0
+    @State private var feedViewModel: FeedViewModel
+    @State private var scrollID: String?
 
-            if showContent {
-                VStack(spacing: 16) {
-                    Image(systemName: "swift")
-                        .font(.system(size: 200))
-                        .foregroundColor(.accentColor)
-                    Text("SwiftUI: \(Greeting().greet())")
-                }
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding()
+    init(dependencies: FeedDependencies, isConfigured: Bool) {
+        _feedViewModel = State(
+            initialValue: FeedViewModel(
+                client: SharedFeedClient(
+                    newsRepository: dependencies.newsRepository,
+                    refreshFeedIfNeeded: dependencies.refreshFeedIfNeeded
+                ), isConfigured: isConfigured
+            ))
     }
-}
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
+    var body: some View {
+        TabView(selection: $selected) {
+            NavigationStack {
+                FeedScreen(viewModel: feedViewModel, scrollID: $scrollID)
+                    .navigationTitle("home.news")
+                    .navigationBarTitleDisplayMode(.large)
+            }
+            .tabItem { Label("home.news", systemImage: "newspaper") }.tag(0)
+            NavigationStack {
+                Text("home.placeholder").navigationTitle("home.favorites").navigationBarTitleDisplayMode(.large)
+            }
+            .tabItem { Label("home.favorites", systemImage: "star") }.tag(1)
+            NavigationStack {
+                Text("home.placeholder").navigationTitle("home.profile").navigationBarTitleDisplayMode(.large)
+            }
+            .tabItem { Label("home.profile", systemImage: "person") }.tag(2)
+        }
+        .onAppear { updateActivity() }
+        .onChange(of: selected) { _, _ in updateActivity() }
+        .onChange(of: scenePhase) { _, _ in updateActivity() }
+        .onDisappear { feedViewModel.deactivate() }
+    }
+
+    private func updateActivity() {
+        if selected == 0 && scenePhase == .active { feedViewModel.activate() } else { feedViewModel.deactivate() }
     }
 }

@@ -1,0 +1,8 @@
+{
+    "compilerOptions": { "strict": true },
+    "fmt": { "indentWidth": 4, "lineWidth": 120 },
+    "tasks": {
+        "test": "deno test handler_test.ts",
+        "check": "deno check index.ts handler_test.ts"
+    }
+}

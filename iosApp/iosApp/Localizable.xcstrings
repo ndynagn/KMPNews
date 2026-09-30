@@ -1,0 +1,176 @@
+{
+  "sourceLanguage": "ru",
+  "strings": {
+    "home.news": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новости"
+          }
+        }
+      }
+    },
+    "home.favorites": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Избранное"
+          }
+        }
+      }
+    },
+    "home.profile": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Профиль"
+          }
+        }
+      }
+    },
+    "home.placeholder": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Раздел в разработке"
+          }
+        }
+      }
+    },
+    "feed.noTitle": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Без заголовка"
+          }
+        }
+      }
+    },
+    "feed.noSummary": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Описание отсутствует"
+          }
+        }
+      }
+    },
+    "feed.empty": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новостей пока нет"
+          }
+        }
+      }
+    },
+    "feed.retry": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить"
+          }
+        }
+      }
+    },
+    "feed.storageError": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать сохранённые новости"
+          }
+        }
+      }
+    },
+    "feed.updateError": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить новости"
+          }
+        }
+      }
+    },
+    "feed.missingKey": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновление недоступно: не настроен ключ API"
+          }
+        }
+      }
+    },
+    "feed.end": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Все новости загружены"
+          }
+        }
+      }
+    },
+    "feed.limit": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранено 200 новостей"
+          }
+        }
+      }
+    },
+    "feed.expand": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показать описание"
+          }
+        }
+      }
+    },
+    "feed.collapse": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скрыть описание"
+          }
+        }
+      }
+    },
+    "feed.imageError": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изображение недоступно"
+          }
+        }
+      }
+    },
+    "feed.loading": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загрузка новостей"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

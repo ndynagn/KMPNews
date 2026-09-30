@@ -28,3 +28,8 @@ Read [architecture](../docs/standards/architecture.md),
 Additional review routing: apply [Kotlin naming and organization](../docs/standards/kotlin-style.md#compose-and-android-resource-naming)
 for this scope and [test conventions](../docs/standards/verification.md#test-and-fixture-conventions)
 for its fixtures and verification code.
+
+Select the presentation variant using architecture; coordinated requests alone
+do not require a reducer. Record events, states, concurrency and acceptance
+scenarios in the feature contract. Native and Compose contracts share behavior,
+not presentation types.

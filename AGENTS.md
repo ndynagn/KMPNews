@@ -45,8 +45,9 @@ Feature-specific contracts refine these rules; see the
 - Do not invent API fields, business rules, product features or design decisions.
   Record an unresolved contract, affected scope and exact unblock condition in
   the task or feature document; continue independent work.
-- Use MVVM for simple screens and MVI for complex transitions/concurrent work,
-  following the architecture standard. Record the choice in the feature contract.
+- Select MVVM, MVI inside ViewModel or MVI with separate transitions using the
+  architecture standard. Record the concrete reason in the feature contract;
+  reducers and MVI frameworks are not mandatory for coordinated requests.
 - Existing direct Greeting construction/calls are starter exceptions, not examples
   for new features. Android/Desktop sharing presentation is an accepted boundary.
 

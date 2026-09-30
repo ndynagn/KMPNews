@@ -1,8 +1,8 @@
 package com.ndynagn.kmp.news
 
+import platform.Foundation.NSProcessInfo
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import platform.Foundation.NSProcessInfo
 
 class SharedLogicMacOSTest {
     @Test
