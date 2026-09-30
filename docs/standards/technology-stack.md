@@ -20,6 +20,7 @@ Acceptance does not mean that these dependencies have been installed or tested.
 | Apple presentation | SwiftUI, MainActor Observable ViewModels, Swift Concurrency; initializer injection | [Observation](https://developer.apple.com/documentation/swiftui/migrating-from-the-observable-object-protocol-to-the-observable-macro) |
 | Apple navigation/images | Native NavigationStack/NavigationSplitView and Nuke/NukeUI | [SwiftUI navigation](https://developer.apple.com/documentation/swiftui/navigation), [Nuke](https://github.com/kean/Nuke) |
 | Kotlin/Swift bridge | SKIE over the existing static SharedLogic framework/direct integration | [SKIE Flow](https://skie.touchlab.co/features/flows), [suspend functions](https://skie.touchlab.co/features/suspend) |
+| Feed mediator | Supabase Edge Functions and private Postgres request budget; public clients use Ktor | [Edge Functions](https://supabase.com/docs/guides/functions) |
 | Later account/favorites | Supabase Auth and Postgres; separate from the initial feed/cache | [Auth](https://supabase.com/docs/guides/auth), [Kotlin client](https://supabase.com/docs/reference/kotlin/introduction) |
 
 The Apple clients use the same Kotlin repositories and Room persistence; they do
@@ -48,12 +49,12 @@ and [compiler setup](https://insert-koin.io/docs/setup/compiler-plugin/).
 ## Prototype and next functional scope
 
 The selected provider is [NewsData.io Free](https://newsdata.io/documentation).
-The first functional slice is the feed plus a local cache. Ktor calls NewsData.io
-directly for the prototype; Edge Functions and a custom server are not part of it.
-Keep the key out of Git, fixtures, logs, query-URL diagnostics and crash reports.
-Local environment/build configuration prevents accidental source publication but
-does not make a key embedded in the application secret. Revisit a server-side
-mediator and quota protection before distributing the application.
+The feed and local cache use a Supabase Edge Function as their NewsData mediator.
+Only the server holds the NewsData key. Clients hold an HTTPS project URL and
+publishable key; neither is a private credential. Direct provider fallback is
+forbidden. The server reserves a shared budget before each upstream attempt;
+see the [server contract](../../supabase/README.md). No server article cache or
+user authentication is introduced by this integration.
 
 Before implementing the feed, record an authoritative Free-plan API contract:
 available fields, nullability, pagination/end conditions, errors, request limits

@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
             MobileApp(
                 dependencies.newsRepository,
                 dependencies.refreshFeedIfNeeded,
-                BuildConfig.NEWS_API_KEY.isNotBlank(),
+                (application as NewsApplication).feedConfiguration.isConfigured,
                 formatDate = { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it)) },
             )
         }

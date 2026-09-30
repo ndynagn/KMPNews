@@ -8,7 +8,7 @@ struct iOSApp: App {
         WindowGroup {
             Group {
                 if let dependencies = homeViewModel.dependencies {
-                    ContentView(dependencies: dependencies, isConfigured: !homeViewModel.apiKey.isEmpty)
+                    ContentView(dependencies: dependencies, isConfigured: homeViewModel.configuration.isConfigured)
                 } else if homeViewModel.storageFailed {
                     VStack {
                         Text("feed.storageError")

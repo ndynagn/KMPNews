@@ -3,7 +3,8 @@
 Scope: this feature. Follow the repository and sharedLogic instructions.
 The authoritative behavior is [the feed contract](../../../../../../../../../../docs/news-feed-data-domain-plan.md).
 
-- Keep English, unfiltered-country NewsData requests and opaque cursor pagination.
+- Keep English, unfiltered-country feed requests through the Supabase mediator
+  and opaque cursor pagination. Provider parameters and secrets are server-owned.
 - Room is the read source; observation must never trigger a network request.
 - Merge by article ID, preserve existing cards on refresh, cap storage at 200.
 - Freshness is one hour since a committed first-page fetch, not a retention TTL.

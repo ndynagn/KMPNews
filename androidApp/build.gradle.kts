@@ -26,10 +26,9 @@ dependencies {
     debugImplementation(libs.compose.uiTooling)
 }
 
-val localConfiguration = Properties().apply {
-    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+val feedConfiguration = Properties().apply {
+    rootProject.file("feed.properties").inputStream().use { load(it) }
 }
-val newsApiKey = localConfiguration.getProperty("newsdata.apiKey", "")
 
 android {
     namespace = "com.ndynagn.kmp.news"
@@ -39,7 +38,13 @@ android {
         applicationId = "com.ndynagn.kmp.news"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        buildConfigField("String", "NEWS_API_KEY", "\"" + newsApiKey.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
+        for ((field, property) in listOf(
+            "SUPABASE_URL" to "supabase.url",
+            "SUPABASE_PUBLISHABLE_KEY" to "supabase.publishableKey",
+        )) {
+            val value = feedConfiguration.getProperty(property, "")
+            buildConfigField("String", field, "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 1
         versionName = "1.0"

@@ -1,0 +1,11 @@
+project_id = "KMPNews"
+
+[api]
+enabled = true
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
+[functions.news-feed]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/news-feed/index.ts"

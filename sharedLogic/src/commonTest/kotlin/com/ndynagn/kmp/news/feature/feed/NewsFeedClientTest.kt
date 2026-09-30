@@ -1,7 +1,8 @@
 package com.ndynagn.kmp.news.feature.feed
 
-import com.ndynagn.kmp.news.feature.feed.data.remote.NewsDataClient
+import com.ndynagn.kmp.news.feature.feed.data.remote.NewsFeedClient
 import com.ndynagn.kmp.news.feature.feed.data.remote.PageResult
+import com.ndynagn.kmp.news.feature.feed.di.FeedApiConfiguration
 import com.ndynagn.kmp.news.feature.feed.di.configureFeedHttpClient
 import com.ndynagn.kmp.news.feature.feed.domain.FeedFailure
 import io.ktor.client.HttpClient
@@ -22,21 +23,23 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class NewsDataClientTest {
+class NewsFeedClientTest {
     @Test
     fun sendsFixedQueryHeaderAndOpaqueCursorWithoutKeyInUrl() = runTest {
         val engine = MockEngine { request ->
             assertEquals("https", request.url.protocol.name)
-            assertEquals("newsdata.io", request.url.host)
-            assertEquals("/api/1/latest", request.url.encodedPath)
-            assertEquals("fixture-key", request.headers["X-ACCESS-KEY"])
+            assertEquals("fixture.supabase.co", request.url.host)
+            assertEquals("/functions/v1/news-feed", request.url.encodedPath)
+            assertEquals("sb_publishable_fixture-key", request.headers["apikey"])
+            assertNull(request.headers["X-ACCESS-KEY"])
+            assertNull(request.headers["Authorization"])
             assertEquals("application/json", request.headers[HttpHeaders.Accept])
-            assertEquals("en", request.url.parameters["language"])
-            assertEquals("10", request.url.parameters["size"])
-            assertEquals("UTC", request.url.parameters["timezone"])
+            assertNull(request.url.parameters["language"])
+            assertNull(request.url.parameters["size"])
+            assertNull(request.url.parameters["timezone"])
             assertEquals("next+/=", request.url.parameters["page"])
             assertNull(request.url.parameters["country"])
-            assertTrue(!request.url.toString().contains("fixture-key"))
+            assertTrue(!request.url.toString().contains("sb_publishable_fixture-key"))
 
             respond(
                 """
@@ -56,10 +59,10 @@ class NewsDataClientTest {
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
         }
-        val client = HttpClient(engine) { configureFeedHttpClient() }
+        val client = HttpClient(engine) { configureFeedHttpClient(feedConfiguration) }
 
         try {
-            val page = assertIs<PageResult.Success>(NewsDataClient(client, "fixture-key").fetch("next+/=")).page
+            val page = assertIs<PageResult.Success>(NewsFeedClient(client, feedConfiguration).fetch("next+/=")).page
 
             assertNull(page.articles.single().title)
             assertNull(page.articles.single().publishedAtEpochMilliseconds)
@@ -157,12 +160,12 @@ class NewsDataClientTest {
 
                     throw IOException("synthetic transport failure")
                 },
-            ) { configureFeedHttpClient() }
+            ) { configureFeedHttpClient(feedConfiguration) }
 
             try {
                 val expected = if (timeout) FeedFailure.TIMEOUT else FeedFailure.NETWORK
 
-                assertEquals(PageResult.Failure(expected), NewsDataClient(client, "fixture-key").fetch(null))
+                assertEquals(PageResult.Failure(expected), NewsFeedClient(client, feedConfiguration).fetch(null))
             } finally {
                 client.close()
             }
@@ -171,10 +174,49 @@ class NewsDataClientTest {
 
     @Test
     fun missingKeyDoesNotSendARequest() = runTest {
-        val client = HttpClient(MockEngine { error("Unexpected request") }) { configureFeedHttpClient() }
+        val client =
+            HttpClient(MockEngine { error("Unexpected request") }) { configureFeedHttpClient(feedConfiguration) }
 
         try {
-            assertEquals(PageResult.Failure(FeedFailure.ACCESS_DENIED), NewsDataClient(client, "").fetch(null))
+            assertEquals(
+                PageResult.Failure(FeedFailure.ACCESS_DENIED),
+                NewsFeedClient(client, FeedApiConfiguration("", "")).fetch(null),
+            )
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
+    fun mapsMediatorTimeoutAndInvalidResponseSeparatelyFromServerFailure() = runTest {
+        assertEquals(
+            PageResult.Failure(FeedFailure.TIMEOUT),
+            fetch("""{"status":"error","results":{"code":"UpstreamTimeout"}}""", 504),
+        )
+        assertEquals(
+            PageResult.Failure(FeedFailure.INVALID_RESPONSE),
+            fetch("""{"status":"error","results":{"code":"InvalidResponse"}}""", 502),
+        )
+    }
+
+    @Test
+    fun invalidOriginsNeverSendCredentials() = runTest {
+        val client =
+            HttpClient(MockEngine { error("Unexpected request") }) { configureFeedHttpClient(feedConfiguration) }
+        try {
+            for (origin in listOf(
+                "",
+                "http://fixture.supabase.co",
+                "https://user:password@fixture.supabase.co",
+                "https://fixture.supabase.co/path",
+                "https://fixture.supabase.co?key=x",
+            )) {
+                val configuration = FeedApiConfiguration(origin, "sb_publishable_fixture-key")
+                assertEquals(
+                    PageResult.Failure(FeedFailure.ACCESS_DENIED),
+                    NewsFeedClient(client, configuration).fetch(null),
+                )
+            }
         } finally {
             client.close()
         }
@@ -194,10 +236,10 @@ class NewsDataClientTest {
                     cancelled.complete(Unit)
                 }
             },
-        ) { configureFeedHttpClient() }
+        ) { configureFeedHttpClient(feedConfiguration) }
 
         try {
-            val task = async { NewsDataClient(client, "fixture-key").fetch(null) }
+            val task = async { NewsFeedClient(client, feedConfiguration).fetch(null) }
             entered.await()
             task.cancelAndJoin()
             cancelled.await()
@@ -213,12 +255,14 @@ class NewsDataClientTest {
             MockEngine {
                 respond(body, HttpStatusCode.fromValue(status), headersOf(HttpHeaders.ContentType, contentType))
             },
-        ) { configureFeedHttpClient() }
+        ) { configureFeedHttpClient(feedConfiguration) }
 
         return try {
-            NewsDataClient(client, "fixture-key").fetch(null)
+            NewsFeedClient(client, feedConfiguration).fetch(null)
         } finally {
             client.close()
         }
     }
 }
+
+private val feedConfiguration = FeedApiConfiguration("https://fixture.supabase.co", "sb_publishable_fixture-key")

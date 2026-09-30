@@ -45,6 +45,27 @@ final class KMPNewsUITests: XCTestCase {
         attachScreenshot(app, "ios-restored-scroll")
     }
 
+    /// Requires explicit opt-in because it uses the real mediator and its shared quota.
+    @MainActor
+    func testLiveMediatorRefreshAndScroll() throws {
+        guard ProcessInfo.processInfo.environment["LIVE_FEED_SMOKE"] == "1" else {
+            throw XCTSkip("Set TEST_RUNNER_LIVE_FEED_SMOKE=1 for the live mediator smoke")
+        }
+        let app = XCUIApplication()
+        app.launch()
+        let feed = app.scrollViews["feed.list"]
+        XCTAssertTrue(feed.waitForExistence(timeout: 15))
+        let article = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "feed.article.")).firstMatch
+        XCTAssertTrue(article.waitForExistence(timeout: 35))
+        feed.swipeDown()
+        XCTAssertTrue(article.waitForExistence(timeout: 35))
+        attachScreenshot(app, "ios-live-mediator")
+        feed.swipeUp()
+        XCTAssertTrue(feed.exists)
+        attachScreenshot(app, "ios-live-mediator-scroll")
+    }
+
     @MainActor
     private func attachScreenshot(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())

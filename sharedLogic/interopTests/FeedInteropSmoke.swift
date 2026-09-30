@@ -12,7 +12,7 @@ struct FeedInteropSmoke {
 
         let dependencies = FeedFactory_appleKt.createFeedDependencies(
             databasePath: directory.appendingPathComponent("composition.db").path,
-            apiKey: ""
+            configuration: FeedApiConfiguration(supabaseUrl: "", publishableKey: "")
         )
         let missingKey = try await dependencies.newsRepository.refresh()
 
@@ -22,7 +22,7 @@ struct FeedInteropSmoke {
         let debugLogger = SmokeHttpLogger()
         let debugDependencies = FeedFactory_appleKt.createFeedDependencies(
             databasePath: directory.appendingPathComponent("debug-composition.db").path,
-            apiKey: "",
+            configuration: FeedApiConfiguration(supabaseUrl: "", publishableKey: ""),
             httpLogger: debugLogger
         )
         let debugMissingKey = try await debugDependencies.newsRepository.refresh()
@@ -149,7 +149,7 @@ private final class SmokeHttpLogger: FeedHttpLogger {
     }
 
     func log(message: String) {
-        precondition(!message.contains("synthetic-test-key"))
+        precondition(!message.contains("sb_publishable_fixture-key"))
 
         lock.lock()
         defer { lock.unlock() }

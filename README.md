@@ -87,12 +87,14 @@ formatting are separate work.
 
 ## Feed domain/data development
 
-The feed repository is available in sharedLogic; starter screens are not connected yet.
+The feed repository in sharedLogic supplies the Android and iOS news screens.
 Use the typed `createFeedDependencies` platform factory with an app-private absolute
-DB path and a locally supplied API key. Android additionally receives Context.
+DB path and `FeedApiConfiguration` containing the Supabase origin and publishable key.
+Android additionally receives Context.
 Share one owner per database, inject its repository into clients, cancel consumers
 before closing the owner. Swift receives the same Kotlin data/domain implementation.
-The key is sent in a header, never a URL, and remains extractable from client binaries.
+The public project key is sent in `apikey`; it is intentionally extractable from client binaries.
+The provider credential exists only in the Edge Function's server secrets.
 
 The repository observes Room, caches at most 200 cards, refreshes on activation
 when stale by one hour, and supports manual refresh. No background polling or
@@ -117,7 +119,7 @@ Live provider smoke is optional and separate from credential-free deterministic 
 ### Opt-in HTTP diagnostics
 
 Feed factories do not log by default. For local debugging, use the overload accepting
-`FeedHttpLogger`. It logs requests, statuses and headers for HTTPS `newsdata.io` calls;
+`FeedHttpLogger`. It logs requests, statuses and headers for HTTPS calls to the configured Supabase project;
 credential headers are masked and bodies are omitted. URLs and other headers remain
 visible. Do not put credentials in query parameters. The composition root decides
 whether logging is enabled; sharedLogic does not infer a build mode.
@@ -126,9 +128,9 @@ Kotlin composition example (JVM; Android additionally requires `context`):
 
 ```kotlin
 val dependencies = if (enableLocalHttpDiagnostics) {
-    createFeedDependencies(databasePath, apiKey, FeedHttpLogger { message -> println(message) })
+    createFeedDependencies(databasePath, configuration, FeedHttpLogger { message -> println(message) })
 } else {
-    createFeedDependencies(databasePath, apiKey)
+    createFeedDependencies(databasePath, configuration)
 }
 ```
 
@@ -144,13 +146,13 @@ final class DebugFeedHttpLogger: FeedHttpLogger {
 #if DEBUG
 let dependencies = FeedFactory_appleKt.createFeedDependencies(
     databasePath: databasePath,
-    apiKey: apiKey,
+    configuration: configuration,
     httpLogger: DebugFeedHttpLogger()
 )
 #else
 let dependencies = FeedFactory_appleKt.createFeedDependencies(
     databasePath: databasePath,
-    apiKey: apiKey
+    configuration: configuration
 )
 #endif
 ```
@@ -158,3 +160,10 @@ let dependencies = FeedFactory_appleKt.createFeedDependencies(
 Logger callbacks may be concurrent and are not MainActor-bound. Keep implementations
 thread-safe, fast and non-throwing. The client retains the logger but does not close
 it. Cancel repository consumers before closing their `FeedDependencies` owner.
+
+## Feed server
+
+The feed uses the Supabase `news-feed` Edge Function. Public client settings are in
+`feed.properties` (Android) and `iosApp/Configuration/Feed.xcconfig` (iOS). They must
+identify the same project. Never put a NewsData or privileged Supabase key in either
+file. See [server setup and verification](supabase/README.md).

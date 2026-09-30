@@ -12,13 +12,13 @@ SharedLogic owns feature/feed/domain, data and composition. Room is the sole
 observed read source. Android/Desktop presentation remains sharedUI; Apple
 presentation remains Swift. This stage introduces no feed UI or ViewModel;
 MVVM/MVI is selected when the presentation contract is implemented.
-Authentication, favorites, background synchronization, server proxy and image
+Authentication, favorites, background synchronization and image
 caching are excluded. Existing Greeting behavior is unchanged.
 
 The feed is English and general, with no country/category/search filter. The
-prototype directly accesses NewsData.io Free. The API key is supplied by the host
-composition root, never tracked, persisted in Room or logged. Direct client
-configuration cannot hide a key in a distributed binary.
+client calls the Supabase news-feed mediator, which holds the NewsData key and
+enforces the shared request budget. Hosts supply only public project configuration.
+See the [server contract](../supabase/README.md); no direct-provider fallback exists.
 
 ## Provider contract and evidence
 
@@ -26,7 +26,7 @@ Inspected primary sources: [OpenAPI](https://newsdata.io/openapi.json),
 [documentation](https://newsdata.io/documentation), [pricing](https://newsdata.io/pricing)
 and [terms](https://newsdata.io/terms). Findings are not a credentialed live API test.
 
-- GET `https://newsdata.io/api/1/latest`, `language=en`, `size=10`, `timezone=UTC`.
+- Server-only GET `https://newsdata.io/api/1/latest`, `language=en`, `size=10`, `timezone=UTC`.
 - Use the supported `X-ACCESS-KEY` header, not a credential in the URL. Redirects
   are disabled so the credential is not forwarded to another endpoint.
 - Free: up to ten articles per call, twelve-hour delayed news, latest endpoint's
@@ -48,7 +48,8 @@ and [terms](https://newsdata.io/terms). Findings are not a credentialed live API
   Distinguish quota exhaustion from rate limiting. Preserve unknown-code handling.
 - Explicit failures: network, timeout, access denied, invalid request, rate limit,
   quota, server unavailable, invalid response and storage. No automatic retries.
-  Request/socket timeout is 30 seconds; connection timeout is 15 seconds.
+  Client request/socket timeout is 30 seconds; connection timeout is 15 seconds.
+  The mediator bounds its upstream call at 20 seconds and its budget RPC at 5 seconds.
 
 No numerical cache-retention permission was verified in the inspected terms.
 The 200-card cache is a product choice, not a content license. Third-party content
@@ -109,7 +110,7 @@ The hour threshold and capacity are our decisions, not intervals prescribed by t
   AlreadyRunning or Failed(FeedFailure). Updated follows transaction commit.
 - `RefreshFeedIfNeeded`: the only use case, because freshness is business policy.
 - `createFeedDependencies`: typed platform factory, receiving an absolute writable
-  database path and runtime key; Android also receives application Context.
+  database path and FeedApiConfiguration; Android also receives application Context.
   The host selects an app-private persistent location, not a temporary directory.
 - Koin is isolated inside composition; constructors receive dependencies explicitly.
   Swift uses the typed factory, not service lookup. Cancel all consumer tasks before

@@ -1,5 +1,6 @@
 package com.ndynagn.kmp.news.feature.feed.data.remote
 
+import com.ndynagn.kmp.news.feature.feed.di.FeedApiConfiguration
 import com.ndynagn.kmp.news.feature.feed.domain.FeedFailure
 import io.ktor.client.HttpClient
 import io.ktor.client.call.NoTransformationFoundException
@@ -18,18 +19,16 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
 
-internal class NewsDataClient(private val httpClient: HttpClient, private val apiKey: String) : NewsRemoteSource {
+internal class NewsFeedClient(private val httpClient: HttpClient, private val configuration: FeedApiConfiguration) :
+    NewsRemoteSource {
     override suspend fun fetch(page: String?): PageResult {
-        if (apiKey.isBlank()) return PageResult.Failure(FeedFailure.ACCESS_DENIED)
+        if (!configuration.isConfigured) return PageResult.Failure(FeedFailure.ACCESS_DENIED)
 
         var statusCode: Int? = null
 
         return try {
-            val response = httpClient.get("1/latest") {
-                header("X-ACCESS-KEY", apiKey)
-                parameter("language", "en")
-                parameter("size", 10)
-                parameter("timezone", "UTC")
+            val response = httpClient.get("news-feed") {
+                header("apikey", configuration.publishableKey)
                 if (page != null) parameter("page", page)
             }
 
@@ -66,6 +65,9 @@ internal class NewsDataClient(private val httpClient: HttpClient, private val ap
             }
             val code = (details?.get("code") as? JsonPrimitive)?.contentOrNull?.trim()
             val failure = when (code) {
+                "UpstreamTimeout" -> FeedFailure.TIMEOUT
+                "InvalidRequest" -> FeedFailure.INVALID_REQUEST
+                "InvalidResponse" -> FeedFailure.INVALID_RESPONSE
                 "ApiLimitExceeded" -> FeedFailure.QUOTA_EXCEEDED
                 "RateLimitExceeded", "TooManyRequests" -> FeedFailure.RATE_LIMITED
                 "Unauthorized", "AccessDenied" -> FeedFailure.ACCESS_DENIED

@@ -4,7 +4,7 @@ import com.ndynagn.kmp.news.feature.feed.data.OfflineFirstNewsRepository
 import com.ndynagn.kmp.news.feature.feed.data.local.FeedDatabase
 import com.ndynagn.kmp.news.feature.feed.data.local.FeedStore
 import com.ndynagn.kmp.news.feature.feed.data.local.RoomFeedStore
-import com.ndynagn.kmp.news.feature.feed.data.remote.NewsDataClient
+import com.ndynagn.kmp.news.feature.feed.data.remote.NewsFeedClient
 import com.ndynagn.kmp.news.feature.feed.data.remote.NewsRemoteSource
 import com.ndynagn.kmp.news.feature.feed.data.remote.feedJson
 import com.ndynagn.kmp.news.feature.feed.domain.FeedClock
@@ -58,7 +58,7 @@ class FeedDependencies internal constructor(
 internal fun assembleFeedDependencies(
     database: FeedDatabase,
     httpClient: HttpClient,
-    apiKey: String,
+    configuration: FeedApiConfiguration,
     onApplicationCreated: (KoinApplication) -> Unit = {},
 ): FeedDependencies {
     var acquiredApplication: KoinApplication? = null
@@ -71,7 +71,7 @@ internal fun assembleFeedDependencies(
                 module {
                     single<FeedClock> { FeedClock { Clock.System.now().toEpochMilliseconds() } }
                     single<FeedStore> { RoomFeedStore(database.feedDao()) }
-                    single<NewsRemoteSource> { NewsDataClient(httpClient, apiKey) }
+                    single<NewsRemoteSource> { NewsFeedClient(httpClient, configuration) }
                     single<OfflineFirstNewsRepository>() bind NewsRepository::class
                     factory<RefreshFeedIfNeeded>()
                 },
@@ -89,7 +89,7 @@ internal fun assembleFeedDependencies(
 /** Transfers both resources to assembly, or closes the database if client creation fails. */
 internal fun createFeedDependenciesWithClient(
     database: FeedDatabase,
-    apiKey: String,
+    configuration: FeedApiConfiguration,
     createHttpClient: () -> HttpClient,
 ): FeedDependencies {
     val httpClient = try {
@@ -99,15 +99,18 @@ internal fun createFeedDependenciesWithClient(
         throw failure
     }
 
-    return assembleFeedDependencies(database, httpClient, apiKey)
+    return assembleFeedDependencies(database, httpClient, configuration)
 }
 
-internal fun HttpClientConfig<*>.configureFeedHttpClient(httpLogger: FeedHttpLogger? = null) {
+internal fun HttpClientConfig<*>.configureFeedHttpClient(
+    configuration: FeedApiConfiguration,
+    httpLogger: FeedHttpLogger? = null,
+) {
     expectSuccess = false
     followRedirects = false
 
     defaultRequest {
-        url("https://newsdata.io/api/")
+        if (configuration.isConfigured) url(configuration.functionsUrl)
     }
 
     if (httpLogger != null) {
@@ -117,11 +120,12 @@ internal fun HttpClientConfig<*>.configureFeedHttpClient(httpLogger: FeedHttpLog
             }
             level = LogLevel.HEADERS
             filter { request ->
-                request.url.protocol == URLProtocol.HTTPS && request.url.host == "newsdata.io"
+                request.url.protocol == URLProtocol.HTTPS && request.url.host == configuration.host
             }
             sanitizeHeader { name ->
                 name.lowercase() in setOf(
                     "x-access-key",
+                    "apikey",
                     "authorization",
                     "proxy-authorization",
                     "cookie",

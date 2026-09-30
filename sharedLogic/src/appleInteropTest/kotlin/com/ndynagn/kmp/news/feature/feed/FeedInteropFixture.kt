@@ -3,8 +3,9 @@ package com.ndynagn.kmp.news.feature.feed
 import com.ndynagn.kmp.news.feature.feed.data.OfflineFirstNewsRepository
 import com.ndynagn.kmp.news.feature.feed.data.local.RoomFeedStore
 import com.ndynagn.kmp.news.feature.feed.data.local.openFeedDatabase
-import com.ndynagn.kmp.news.feature.feed.data.remote.NewsDataClient
+import com.ndynagn.kmp.news.feature.feed.data.remote.NewsFeedClient
 import com.ndynagn.kmp.news.feature.feed.data.remote.PageResult
+import com.ndynagn.kmp.news.feature.feed.di.FeedApiConfiguration
 import com.ndynagn.kmp.news.feature.feed.di.FeedHttpLogger
 import com.ndynagn.kmp.news.feature.feed.di.configureFeedHttpClient
 import com.ndynagn.kmp.news.feature.feed.domain.FeedClock
@@ -68,10 +69,10 @@ class FeedInteropFixture(databasePath: String, private val shouldFail: Boolean) 
                 finished.complete(Unit)
             }
         },
-    ) { configureFeedHttpClient() }
+    ) { configureFeedHttpClient(feedConfiguration) }
     private val repository = OfflineFirstNewsRepository(
         RoomFeedStore(database.feedDao()),
-        NewsDataClient(httpClient, "synthetic-test-key"),
+        NewsFeedClient(httpClient, feedConfiguration),
         FeedClock { 123_000L },
     )
 
@@ -93,10 +94,10 @@ class FeedInteropFixture(databasePath: String, private val shouldFail: Boolean) 
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
             },
-        ) { configureFeedHttpClient(httpLogger) }
+        ) { configureFeedHttpClient(feedConfiguration, httpLogger) }
 
         try {
-            check(NewsDataClient(client, "synthetic-test-key").fetch(null) is PageResult.Success)
+            check(NewsFeedClient(client, feedConfiguration).fetch(null) is PageResult.Success)
         } finally {
             client.close()
         }
@@ -119,3 +120,5 @@ class FeedInteropFixture(databasePath: String, private val shouldFail: Boolean) 
         database.close()
     }
 }
+
+private val feedConfiguration = FeedApiConfiguration("https://fixture.supabase.co", "sb_publishable_fixture-key")

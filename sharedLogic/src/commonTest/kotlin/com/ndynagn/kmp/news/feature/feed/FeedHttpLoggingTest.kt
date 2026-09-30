@@ -1,5 +1,6 @@
 package com.ndynagn.kmp.news.feature.feed
 
+import com.ndynagn.kmp.news.feature.feed.di.FeedApiConfiguration
 import com.ndynagn.kmp.news.feature.feed.di.FeedHttpLogger
 import com.ndynagn.kmp.news.feature.feed.di.configureFeedHttpClient
 import io.ktor.client.HttpClient
@@ -36,11 +37,11 @@ class FeedHttpLoggingTest {
                         headersOf("Set-Cookie", "private-response-cookie"),
                     )
                 },
-            ) { configureFeedHttpClient(FeedHttpLogger { messages.trySend(it) }) }
+            ) { configureFeedHttpClient(feedConfiguration, FeedHttpLogger { messages.trySend(it) }) }
 
             try {
-                val response = client.get("1/latest") {
-                    header("X-ACCESS-KEY", "private-api-key")
+                val response = client.get("news-feed") {
+                    header("apikey", "private-api-key")
                     header("Authorization", "private-authorization")
                     header("Proxy-Authorization", "private-proxy")
                     header("Cookie", "private-cookie")
@@ -55,7 +56,7 @@ class FeedHttpLoggingTest {
 
             val output = drain(messages)
 
-            assertTrue(output.contains("newsdata.io/api/1/latest"))
+            assertTrue(output.contains("fixture.supabase.co/functions/v1/news-feed"))
             assertTrue(output.contains(status.value.toString()))
             assertTrue(output.contains("visible-header"))
             assertFalse(output.contains("private-"))
@@ -66,16 +67,20 @@ class FeedHttpLoggingTest {
     fun excludesOtherHostsAndPlainHttpAndIsDisabledByDefault() = runTest {
         val messages = Channel<String>(Channel.UNLIMITED)
         val client = HttpClient(MockEngine { respond("unused") }) {
-            configureFeedHttpClient(FeedHttpLogger { messages.trySend(it) })
+            configureFeedHttpClient(feedConfiguration, FeedHttpLogger { messages.trySend(it) })
         }
-        val quietClient = HttpClient(MockEngine { respond("unused") }) { configureFeedHttpClient() }
+        val quietClient = HttpClient(MockEngine { respond("unused") }) { configureFeedHttpClient(feedConfiguration) }
 
         try {
-            for (url in listOf("https://example.com/", "https://newsdata.io.example.com/", "http://newsdata.io/")) {
+            for (url in listOf(
+                "https://example.com/",
+                "https://fixture.supabase.co.example.com/",
+                "http://fixture.supabase.co/",
+            )) {
                 client.get(url).bodyAsText()
             }
 
-            quietClient.get("1/latest").bodyAsText()
+            quietClient.get("news-feed").bodyAsText()
 
             assertNull(quietClient.pluginOrNull(Logging))
             assertEquals("", drain(messages))
@@ -95,11 +100,11 @@ class FeedHttpLoggingTest {
                 CompletableDeferred<Unit>().await()
                 respond("unreachable")
             },
-        ) { configureFeedHttpClient(FeedHttpLogger { messages.trySend(it) }) }
+        ) { configureFeedHttpClient(feedConfiguration, FeedHttpLogger { messages.trySend(it) }) }
 
         try {
             val task = async {
-                client.get("1/latest") { header("X-ACCESS-KEY", "private-api-key") }
+                client.get("news-feed") { header("apikey", "private-api-key") }
             }
 
             entered.await()
@@ -120,3 +125,5 @@ class FeedHttpLoggingTest {
         }
     }
 }
+
+private val feedConfiguration = FeedApiConfiguration("https://fixture.supabase.co", "sb_publishable_fixture-key")

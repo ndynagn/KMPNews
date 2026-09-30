@@ -60,8 +60,9 @@ to native presentation values; it does not duplicate storage or business policy.
 
 ## Configuration and dependencies
 
-- Android: add `newsdata.apiKey=...` to ignored root `local.properties`.
-- iOS: create ignored `iosApp/Configuration/Local.xcconfig` with `NEWSDATA_API_KEY = ...`.
+- Android: use the public project URL and publishable key in root `feed.properties`.
+- iOS: use the public settings in `iosApp/Configuration/Feed.xcconfig`.
+- Provider secrets exist only in Supabase; see [server setup](../supabase/README.md).
   Tracked `Feed.xcconfig` includes it optionally and is assigned only to iOS Debug/Release.
 - Builds work without a key. Room observation remains available, network operations
   are disabled, and the UI explains that refresh is unavailable. No sample articles

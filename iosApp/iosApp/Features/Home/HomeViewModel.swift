@@ -7,11 +7,13 @@ import SharedLogic
 final class HomeViewModel {
     private(set) var dependencies: FeedDependencies?
     private(set) var storageFailed = false
-    let apiKey: String
+    let configuration: FeedApiConfiguration
 
     init() {
-        let configured = Bundle.main.object(forInfoDictionaryKey: "NewsDataAPIKey") as? String ?? ""
-        apiKey = configured.hasPrefix("$(") ? "" : configured.trimmingCharacters(in: .whitespacesAndNewlines)
+        configuration = FeedApiConfiguration(
+            supabaseUrl: Bundle.main.object(forInfoDictionaryKey: "SupabaseURL") as? String ?? "",
+            publishableKey: Bundle.main.object(forInfoDictionaryKey: "SupabasePublishableKey") as? String ?? ""
+        )
     }
 
     func prepare() {
@@ -21,7 +23,7 @@ final class HomeViewModel {
                 for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
             )
             dependencies = FeedFactory_appleKt.createFeedDependencies(
-                databasePath: directory.appendingPathComponent("news-feed.db").path, apiKey: apiKey
+                databasePath: directory.appendingPathComponent("news-feed.db").path, configuration: configuration
             )
             storageFailed = false
         } catch {
