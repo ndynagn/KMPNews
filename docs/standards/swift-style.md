@@ -95,3 +95,35 @@ copy or invent designs when a task requires an exact supplied design. Inspect th
 referenced design and validate meaningful controls, long content and text scaling.
 
 See [verification](verification.md) for targeted formatting and platform checks.
+
+## Acronyms and declaration organization
+
+Use Swift spellings such as `URLRequest` and `articleURL`, retaining established
+SDK names. Preserve imported Kotlin declarations as exported; do not add wrappers
+solely to change `articleUrl` to `articleURL`. This keeps native naming independent
+from the shared API's language conventions.
+
+Order properties, initializers, then meaningful groups of methods. Put related
+methods and overloads together, with principal operations before supporting logic;
+do not sort alphabetically or mechanically by visibility. Follow protocol member
+order when it improves understanding. Group extensions by responsibility or
+conformance, near their owner or specific consumer; use a separate file for a
+substantial or independent responsibility, not an arbitrary `Extensions.swift`.
+
+Small, tightly related declarations may share a file. Existing separate
+Screen/ViewModel and independently reusable component rules still apply.
+Use [code documentation](code-documentation.md) for `///` coverage, actor/lifecycle
+contracts, TODO/FIXME and justified exceptions.
+
+## Apple resource naming
+
+Use semantic feature-prefixed localization keys such as `feed.empty.title` and
+role-bearing asset names such as `FeedPlaceholder`. Use `common` only for genuinely
+shared resources (for example `common.cancel`). Keep SDK/system symbol names and
+generated accessors unchanged. These are project conventions, not mandatory Apple
+key or asset formats. Preserve ownership by the native client.
+
+Use localized accessibility labels for assistive technology. Add stable
+`accessibilityIdentifier` values only where automation needs them, following
+[verification](verification.md#test-and-fixture-conventions); never substitute
+machine identifiers for spoken labels.

@@ -37,3 +37,8 @@ Read [Swift style](../docs/standards/swift-style.md),
 - UI changes need an iOS build, launch and relevant interaction/visual check.
   Project changes need before/after settings comparison and affected-client builds.
   Simulator success does not establish device signing or distribution readiness.
+
+Additional review routing: apply [Apple resource naming](../docs/standards/swift-style.md#apple-resource-naming)
+and [Swift declaration organization](../docs/standards/swift-style.md#acronyms-and-declaration-organization);
+use [test conventions](../docs/standards/verification.md#test-and-fixture-conventions)
+for native fixtures and automation identifiers.

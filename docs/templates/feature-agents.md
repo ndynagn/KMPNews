@@ -53,6 +53,8 @@ folders must be excluded from target membership and checked in the built bundle.
 - <Flow/suspend cancellation and error behavior in Swift when APIs are exported>.
 - <observable acceptance scenarios and relevant UI/runtime checks>.
 - <known blocker, confirmed source, affected scope and exact removal condition>.
+- <feature-specific fixtures and automation identifiers only when needed; follow
+  the documentation, language and verification standards instead of duplicating them>.
 
 Keep one canonical shared contract. Platform instructions link to it and only add
 local differences. Source-set boundaries do not inherit each other's instructions;

@@ -84,9 +84,9 @@ launch/interaction; a generic destination supports building, not launching.
 Discover new tasks with Gradle task listings rather than inventing names. Do not
 run multiple Gradle/Xcode processes against shared outputs concurrently.
 
-Most current shared tests are template arithmetic examples; a passing suite does
-not prove news-reader behavior. New behavior needs meaningful assertions, controlled
-clock/network and fakes. Real service smoke checks supplement deterministic tests.
+Starter arithmetic tests do not prove news-reader behavior. Existing feed tests
+cover their recorded contracts; their success does not prove new behavior. New
+behavior needs meaningful assertions, controlled clock/network and fakes. Real service smoke checks supplement deterministic tests.
 If an environment is unavailable, report the limitation, not PASS.
 
 ## Dependency and interop admission gate
@@ -141,3 +141,68 @@ See [initial adoption results](../agent-guidelines-adoption.md) for historical
 evidence and formatting debt, and [stack update results](../stack-architecture-adoption.md)
 for the current routing review. Structural import validation is not proof of a
 fresh Codex/Claude runtime session; report those checks separately.
+
+## Test and fixture conventions
+
+Use descriptive lowerCamelCase test names that explain behavior, for example
+`refreshPreservesCacheWhenNetworkFails`. Keep Kotlin tests portable across current
+targets; naming examples in platform documentation do not override this choice.
+For Swift retain test-discovery syntax required by the selected framework (such
+as an XCTest `test` prefix); this policy does not introduce a testing framework.
+
+Organize tests as Arrange–Act–Assert with semantic spacing. Literal section
+comments are optional. A reader should see the important inputs, action and
+expected behavior without reconstructing an elaborate fixture abstraction.
+Test observable contracts; verify interactions when they themselves are material,
+such as no network request during local observation. Do not mirror private logic.
+
+Use Fake for a simplified working implementation, Stub for configured responses,
+and Mock for configured interaction expectations/verification. Framework-specific
+names remain unchanged. Prefer an appropriate existing test facility and choose
+the double for the scenario; these rules do not mandate a mocking library.
+
+Keep fixtures with the feature's tests in the applicable source set. Extract shared
+test helpers only after actual reuse; do not move test-only fixtures into production
+sources merely to share them. The existing opt-in Apple interop harness remains a
+verification boundary, not permission to export fixtures in ordinary frameworks.
+
+Illustrative repository-test body (setup/helpers and model definitions omitted):
+
+```kotlin
+@Test
+fun refreshPreservesCacheWhenNetworkFails() = runTest {
+    feedStore.write(cachedFeed)
+    remoteSource.nextResult = PageResult.Failure(FeedFailure.NETWORK)
+
+    val result = newsRepository.refresh()
+
+    assertEquals(FeedUpdateResult.Failed(FeedFailure.NETWORK), result)
+    assertEquals(cachedFeed, feedStore.read())
+}
+```
+
+This is a behavioral example, not a prescribed test-helper API. A fixture should
+keep the cached content relevant to the assertion visible in the actual test.
+
+### UI identifiers
+
+Add Compose `testTag` or Swift `accessibilityIdentifier` where automation or
+ambiguous elements need it, not to every View preemptively. Use stable semantic
+names such as `feed.retryButton` and `feed.article.<id>`. The latter requires a
+stable, non-sensitive identifier; do not embed secrets, personal data or changing
+list positions. Keep identifiers independent from localized visible/accessibility
+labels. These formats are project decisions.
+
+### Sources and enforcement
+
+[Android test doubles](https://developer.android.com/training/testing/fundamentals/test-doubles)
+explains substitution techniques; Google’s
+[Test Behavior, Not Implementation](https://testing.googleblog.com/2013/08/testing-on-toilet-test-behavior-not.html)
+supports checking observable behavior. Our name format, Arrange–Act–Assert layout
+and fixture placement are explicit project choices.
+
+Use the [review checklist](review-checklist.md) for naming, documentation and
+architectural review. Current formatters enforce their configured mechanical rules;
+they do not prove semantic names, documentation completeness or architecture.
+No new linter, hook, CI gate or whole-repository cleanup is introduced by these
+standards. Apply them to added/modified code and report existing debt separately.

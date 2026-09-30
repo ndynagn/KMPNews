@@ -19,6 +19,9 @@ only import it. Keep instructions and new engineering documentation in English.
 | Shared Android/Desktop Compose presentation      | [sharedUI/AGENTS.md](sharedUI/AGENTS.md)       | Kotlin and Architecture                                                                  |
 | Root Gradle/configuration                       | This file                                      | Kotlin and [Verification](docs/standards/verification.md)                                |
 
+Read [code documentation](docs/standards/code-documentation.md) when changing contracts,
+comments or exceptions; use the [review checklist](docs/standards/review-checklist.md)
+before delivery.
 Read the linked language standard when changing that language, and the
 architecture standard for new features or changes to boundaries/public APIs.
 Read the [accepted stack](docs/standards/technology-stack.md) before dependency
@@ -60,8 +63,8 @@ Feature-specific contracts refine these rules; see the
   of its layer, or the appropriate UI kit. Repeated list rows are one consumer.
 - Generic UI-kit components do not own feature data or ViewModels. Compose reuse
   belongs in sharedUI; keep Swift UI native to its Apple client.
-- Comments explain intent, constraints and non-obvious tradeoffs. Document public
-  shared contracts, including error/cancellation semantics; avoid narrating code.
+- Follow the documentation standard for API contracts, explanatory comments,
+  TODO/FIXME and justified exceptions. Keep documentation current with behavior.
 
 ## Change and verification discipline
 

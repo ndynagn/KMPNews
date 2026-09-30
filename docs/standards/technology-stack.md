@@ -1,7 +1,7 @@
 # Accepted technology stack
 
-Decision date: 2026-09-30. Status: architecture accepted; dependency integration
-and compatibility builds pending. This document is the single technology decision
+Decision date: 2026-09-30. Status: architecture accepted; feed dependency integration
+is tracked in the [feed validation record](../news-feed-validation.md). This document is the single technology decision
 record; [architecture](architecture.md) defines behavior and boundaries, while
 [verification](verification.md#dependency-and-interop-admission-gate) defines admission.
 Acceptance does not mean that these dependencies have been installed or tested.
@@ -30,8 +30,17 @@ shared mutable state across every client or window.
 
 Use MVVM for simple interactions and MVI for complex coordination, following the
 [presentation contracts](architecture.md#presentation-contracts). No separate MVI
-framework, universal BaseViewModel, Koin code-generation approach or toolchain
-upgrade is selected by this decision.
+framework, universal BaseViewModel or toolchain upgrade is selected by this decision.
+
+Koin Compiler Plugin 1.2.1 is selected with Koin 4.2.2 and Kotlin 2.4.20.
+Use compiler DSL auto-wiring without annotations on business classes, explicit
+interface bindings and provider lambdas for platform/runtime resources. Keep
+`compileSafety`, `strictSafety` and `unsafeDslChecks` enabled. The isolated
+`koinApplication` is the full-graph validation entry point; do not hide unresolved
+graphs behind dynamic module lists or safety suppressions. KSP remains Room-only.
+Koin still resolves instances at runtime: compiler checks do not validate API keys,
+resource lifecycle or business behavior. See the [1.2.1 release](https://github.com/InsertKoinIO/koin-compiler-plugin/releases/tag/1.2.1)
+and [compiler setup](https://insert-koin.io/docs/setup/compiler-plugin/).
 
 ## Prototype and next functional scope
 
@@ -73,10 +82,10 @@ is implied by this stack.
 | Koin/Ktor/Navigation3/Coil/Nuke documentation above | Selected integrations and documented capabilities | Exact version set, transitive graph and behavior in this repository |
 | Supabase Kotlin documentation | Community client and supported integration surface | Version/engine/target compatibility and later Auth/favorites behavior |
 
-These are research observations and version candidates, not pins or passing
-repository checks. No newly selected dependency was added or compiled in this
-documentation stage. Pin exact versions during integration, including compiler
-plugins, KSP, SQLite driver and Swift packages. Do not silently downgrade Kotlin
+The table above preserves the initial research baseline. The version catalog now
+pins feed dependencies; subsequent build/runtime evidence is in the feed validation
+record. Presentation dependencies and later Supabase work remain outside that gate.
+Pin exact versions during each integration, including compiler plugins and Swift packages. Do not silently downgrade Kotlin
 or swap a selected library if the compatibility gate fails; record the concrete
 failure and revisit that decision while continuing independent work.
 

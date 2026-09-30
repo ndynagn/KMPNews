@@ -21,3 +21,7 @@ Read [Kotlin style](../docs/standards/kotlin-style.md),
   close/reopen for relevant changes. Keep menu actions and shortcuts consistent.
 - Native macOS and JVM Desktop are different clients. A passing macOS build or
   DMG packaging does not verify this application's behavior on Windows or Linux.
+
+Additional review routing: apply [Kotlin naming and organization](../docs/standards/kotlin-style.md#compose-and-android-resource-naming)
+for this scope and [test conventions](../docs/standards/verification.md#test-and-fixture-conventions)
+for its fixtures and verification code.

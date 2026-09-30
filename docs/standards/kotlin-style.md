@@ -54,9 +54,9 @@ feature contract. A formatter can cap blank lines, but it cannot infer phases.
   `repository`, `manager` or unexplained abbreviations when intent is ambiguous.
 - Use `private`, not Dart-style underscores. `_state` is allowed only as the
   private mutable half of a public read-only backing-property pair.
-- Domain concepts need no automatic Entity suffix. Transport types use descriptive
-  `ArticleResponseDto`/`RefreshRequestDto` names. Related nested DTOs may share the
-  owning contract file; independent contracts should not be bundled together.
+- Follow the role names below for domain, transport and storage types. Related
+  nested DTOs may share their owning contract file; independent contracts should
+  not be bundled together.
 - A screen and its ViewModel are separate. Keep private one-owner helpers and
   previews local; apply the second-consumer extraction rule from architecture.
 - Minimize visibility and exported APIs. Prefer `val` and read-only collections;
@@ -76,7 +76,8 @@ Avoid nested let/run/apply/also chains that obscure control flow, `!!` without a
 proved invariant, unexplained magic values and blanket suppression annotations.
 Extract repeated semantic values to constants/tokens; literals like zero or a
 single local spacing choice do not require a global constants hierarchy.
-Document public domain behavior and errors; comments explain why, not each line.
+Follow [code documentation](code-documentation.md) for contract coverage and comments;
+avoid narrating obvious syntax.
 
 Formatting is explicit and restricted to intended files during adoption. See
 [verification](verification.md) for commands and existing-debt handling.
@@ -100,3 +101,72 @@ Use constructor parameters with meaningful names for Koin-provided collaborators
 DI resolution syntax belongs to composition, not domain/data methods. DTOs and
 Room entities use role-specific names and explicit mappings into domain models;
 do not add serialization/database annotations to domain to avoid a mapper.
+
+## Role names, acronyms and data operations
+
+Use role-bearing implementation names such as `OfflineFirstNewsRepository` and
+`NewsDataClient`. Do not require `I` prefixes or `Impl` suffixes. Domain uses
+`Article`, transport uses `ArticleResponseDto`, storage uses `ArticleEntity`;
+these names communicate boundaries without moving data types into domain.
+
+Use Kotlin-style spellings such as `HttpClient`, `ArticleDto` and `articleUrl`.
+For acronym details follow Kotlin conventions (for example `IOStream` for a
+standalone two-letter acronym). Preserve SDK/library/imported names; do not rename
+foreign APIs or add wrappers solely for capitalization. Swift has its own spelling.
+
+The following is a project vocabulary for data/domain APIs, not a universal Kotlin
+or third-party API requirement:
+
+| Verb | Meaning |
+| --- | --- |
+| `observe` | A stream of values; document source, lifetime and failure behavior |
+| `read` | A one-shot storage read |
+| `fetch` | A request to a remote source |
+| `refresh` | An update of data; document source, persistence and coordination |
+| `get` | Does not promise a source or cost; the contract must make these clear |
+| `load` | Requires clear contextual purpose and documented behavior |
+
+A name does not prove cancellation, caching or network semantics. Document those
+using [code documentation](code-documentation.md). These conventions apply to new
+and modified contracts, not an automatic rename of all existing APIs.
+
+Simple mapping belongs in data as `toDomain()`/`toEntity()` functions. Introduce a
+mapper class when dependencies or cohesive complex behavior justify it. Do not
+import DTOs or storage entities into domain just to host a conversion.
+
+Illustrative data-layer extension with surrounding model declarations omitted:
+
+```kotlin
+internal fun ArticleResponseDto.toDomain(): Article = Article(id = id, title = title)
+```
+
+Use explicit field mapping; real feature mapping must cover its actual contract,
+including nullable values, validation and errors. This abbreviated example is not
+a replacement for the feed's existing mapper.
+
+## Declaration organization
+
+Within a class use properties/init blocks, secondary constructors, methods, then
+companion object. Keep initialization semantics intact. Put related methods and
+overloads together, with principal operations before their supporting logic;
+do not sort alphabetically or mechanically by visibility. Preserve interface
+member order in implementations when it improves readability. Put nested types
+near their use when appropriate.
+
+Small, tightly related declarations may share a file with a descriptive name.
+Screen/ViewModel and independently reusable component separation still applies.
+Extensions belong near their semantic owner or specific consumer; do not create a
+miscellaneous `Extensions.kt` or a file collecting unrelated extensions by type.
+This adapts [Kotlin source organization](https://kotlinlang.org/docs/coding-conventions.html#source-file-organization).
+
+## Compose and Android resource naming
+
+Use feature-prefixed snake_case for resource entries and own resource filenames
+where the platform permits them: `feed_empty_title`, `feed_retry`.
+Use `common_` only for genuinely shared resources, not as a default prefix.
+Keep framework-required names, generated identifiers and qualifier directories in
+their native format. Shared Compose resources belong to sharedUI; platform-only
+resources stay with their host. Resource naming is a project convention.
+
+UI-test identifiers follow [verification](verification.md#test-and-fixture-conventions).
+They are not accessibility labels and do not replace semantics/content descriptions.

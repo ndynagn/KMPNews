@@ -31,6 +31,11 @@ Dependency choices and admission gates: [accepted stack](../docs/standards/techn
   the selected async bridge; verify pinned versions before integration. Export
   expected failures as explicit models; no unhandled exceptions may escape an
   exported Flow. Preserve cancellation rather than wrapping it as a failure.
+- Use Koin compiler DSL for constructor registrations and explicit interface bindings.
+  Keep compileSafety/strictSafety enabled; provider lambdas are for runtime/platform
+  inputs. Validate the assembled graph at an isolated composition entry point,
+  including a negative compilation check when changing DI verification. Do not
+  add Koin annotations to business classes or suppress missing bindings.
 - Keep Koin wiring outside domain/data behavior. Expose typed construction entry
   points for Swift composition roots; do not require Swift callers to locate
   dependencies through the Koin container.
@@ -40,3 +45,12 @@ Dependency choices and admission gates: [accepted stack](../docs/standards/techn
 - Test shared behavior with deterministic fakes/fixtures. Changes to exported API
   require compilation of Kotlin clients and both Swift clients. Platform behavior
   needs tests in the matching source set; common tests alone are insufficient.
+
+Feed implementations and tests across source sets follow the
+[feed contract](../docs/news-feed-data-domain-plan.md) and
+[feed instructions](src/commonMain/kotlin/com/ndynagn/kmp/news/feature/feed/AGENTS.md).
+The appleInteropTest fixtures are opt-in verification code, never normal framework APIs.
+
+Additional review routing: apply [Kotlin naming and organization](../docs/standards/kotlin-style.md#role-names-acronyms-and-data-operations)
+for this scope and [test conventions](../docs/standards/verification.md#test-and-fixture-conventions)
+for its fixtures and verification code.

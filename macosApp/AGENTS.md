@@ -26,3 +26,8 @@ Read [Swift style](../docs/standards/swift-style.md),
 - Build the affected configuration, launch and inspect the result. Lifecycle
   changes require close/reopen and independent-window checks. Distribution
   signing and Intel support are outside the current local-development contract.
+
+Additional review routing: apply [Apple resource naming](../docs/standards/swift-style.md#apple-resource-naming)
+and [Swift declaration organization](../docs/standards/swift-style.md#acronyms-and-declaration-organization);
+use [test conventions](../docs/standards/verification.md#test-and-fixture-conventions)
+for native fixtures and automation identifiers.

@@ -24,3 +24,7 @@ Read [architecture](../docs/standards/architecture.md),
   boundaries; do not branch business policy on the current UI platform.
 - Changes affect both Compose clients: compile Android/Desktop and test relevant
   state transitions, rendering and lifecycle scenarios on each affected host.
+
+Additional review routing: apply [Kotlin naming and organization](../docs/standards/kotlin-style.md#compose-and-android-resource-naming)
+for this scope and [test conventions](../docs/standards/verification.md#test-and-fixture-conventions)
+for its fixtures and verification code.

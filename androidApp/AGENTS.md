@@ -25,3 +25,7 @@ Read [Kotlin style](../docs/standards/kotlin-style.md),
   to meaningful controls and stable keys to stateful lists.
 - Verify loading/empty/error/content and relevant retry actions. Check supported
   widths, text scaling and configuration changes for modified screens.
+
+Additional review routing: apply [Kotlin naming and organization](../docs/standards/kotlin-style.md#compose-and-android-resource-naming)
+for this scope and [test conventions](../docs/standards/verification.md#test-and-fixture-conventions)
+for its fixtures and verification code.
