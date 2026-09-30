@@ -56,9 +56,11 @@ fun MobileApp(
     var selected by rememberSaveable { mutableStateOf(0) }
     val listState = rememberLazyListState()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+
     LaunchedEffect(selected, lifecycle, feedViewModel) {
         if (selected == 0) lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { feedViewModel.activate() }
     }
+
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
         val titles =
             listOf(

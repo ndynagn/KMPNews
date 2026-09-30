@@ -55,6 +55,7 @@ internal fun FeedScreen(
     modifier: Modifier = Modifier,
 ) {
     val articles = state.snapshot?.articles.orEmpty()
+
     LaunchedEffect(listState, articles.size, state.canAppend) {
         if (state.canAppend) {
             snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
@@ -63,6 +64,7 @@ internal fun FeedScreen(
                 }
         }
     }
+
     PullToRefreshBox(
         isRefreshing = state.status.operation == FeedOperation.REFRESH,
         onRefresh = { onEvent(FeedEvent.REFRESH) },
@@ -96,9 +98,10 @@ internal fun FeedScreen(
                             Res.string.feed_update_error
                         }
                         Text(stringResource(errorMessage))
-                        Button(onClick = {
-                            onEvent(FeedEvent.RETRY)
-                        }, modifier = Modifier.testTag("feed.retryButton")) {
+                        Button(
+                            onClick = { onEvent(FeedEvent.RETRY) },
+                            modifier = Modifier.testTag("feed.retryButton"),
+                        ) {
                             Text(stringResource(Res.string.feed_retry))
                         }
                     } else if (state.status.operation == null) {

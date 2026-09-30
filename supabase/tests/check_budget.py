@@ -2,12 +2,12 @@
 
 Requires Docker. No host ports or persistent volumes, and no provider requests.
 """
-from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 import json
 import subprocess
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 container = "kmpnews-budget-" + uuid.uuid4().hex[:10]
@@ -36,7 +36,14 @@ try:
         sql(migration.read_text())
     sql((root / "tests/budget.sql").read_text())
     with ThreadPoolExecutor(max_workers=30) as pool:
-        results = list(pool.map(lambda _: json.loads(sql("set role service_role; select public.reserve_news_request();").splitlines()[-1]), range(40)))
+        results = list(
+            pool.map(
+                lambda _: json.loads(
+                    sql("set role service_role; select public.reserve_news_request();").splitlines()[-1]
+                ),
+                range(40),
+            )
+        )
     accepted = sum(item["allowed"] for item in results)
     assert accepted == 25, results
     assert all(item["allowed"] or item["code"] == "RateLimitExceeded" for item in results), results

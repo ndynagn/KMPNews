@@ -143,14 +143,19 @@ private class FakeScreenRepository(hasMore: Boolean = false) : NewsRepository {
     @Volatile var appends = 0
 
     @Volatile var refreshes = 0
+
     override fun observeFeed() = snapshots
+
     override suspend fun refresh(): FeedUpdateResult {
         refreshes++
+
         return FeedUpdateResult.Updated
     }
+
     override suspend fun loadNextPage(): FeedUpdateResult {
         appends++
         delay(50)
+
         return FeedUpdateResult.Failed(FeedFailure.NETWORK)
     }
 }

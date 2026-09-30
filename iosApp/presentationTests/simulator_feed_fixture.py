@@ -1,8 +1,8 @@
 """Seed/restore only an empty simulator cache for the opt-in cached-card UI test."""
 import argparse
-from pathlib import Path
 import sqlite3
 import subprocess
+from pathlib import Path
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("action", choices=["seed", "restore"])

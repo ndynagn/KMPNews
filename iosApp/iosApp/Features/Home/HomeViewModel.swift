@@ -18,6 +18,7 @@ final class HomeViewModel {
 
     func prepare() {
         guard dependencies == nil else { return }
+
         do {
             let directory = try FileManager.default.url(
                 for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true

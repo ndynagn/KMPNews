@@ -45,14 +45,17 @@ final class SharedFeedClient: FeedClient {
 
     func update(_ operation: FeedOperation) async throws -> FeedUpdate {
         let result: any FeedUpdateResult
+
         switch operation {
         case .activate: result = try await refreshFeedIfNeeded.invoke()
         case .refresh: result = try await newsRepository.refresh()
         case .append: result = try await newsRepository.loadNextPage()
         }
+
         if let failure = result as? FeedUpdateResultFailed {
             return .failure(isStorage: failure.failure == .storage)
         }
+
         return .success
     }
 }

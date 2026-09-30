@@ -44,11 +44,13 @@ enum FeedUiState {
 
     var snapshot: FeedSnapshotState? {
         if case .content(let snapshot, _) = self { return snapshot }
+
         return nil
     }
 
     var canAppend: Bool {
         guard case .content(let snapshot, let status) = self else { return false }
+
         return status.isConfigured && !status.storageFailed && status.operation == nil
             && status.failedOperation == nil && snapshot.hasMore && !snapshot.isCacheLimitReached
     }
