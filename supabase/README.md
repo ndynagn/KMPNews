@@ -4,6 +4,9 @@ Project: `KMPNews`, ref `awupjlsmdnbhpfbmykrv`, London (`eu-west-2`).
 The public client URL is `https://awupjlsmdnbhpfbmykrv.supabase.co`.
 No authentication UI, server article cache, favorites or background polling is introduced.
 
+Server-side account preparation is documented separately in the
+[Auth contract](../docs/auth-contract.md). Auth does not gate the public feed.
+
 ## HTTP contract
 
 `GET /functions/v1/news-feed` accepts only an optional, non-empty `page` query
