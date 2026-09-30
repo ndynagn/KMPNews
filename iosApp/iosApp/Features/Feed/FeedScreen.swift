@@ -3,7 +3,6 @@ import SwiftUI
 
 struct FeedScreen: View {
     let viewModel: FeedViewModel
-    @Binding var expanded: Set<String>
     @Binding var scrollID: String?
     @State private var visibleIDs: Set<String> = []
 
@@ -11,19 +10,13 @@ struct FeedScreen: View {
         ScrollView {
             LazyVStack(spacing: 16) {
                 ForEach(viewModel.state.snapshot?.articles ?? []) { article in
-                    FeedCard(article: article, isExpanded: expanded.contains(article.id)) {
-                        if expanded.contains(article.id) {
-                            expanded.remove(article.id)
-                        } else {
-                            expanded.insert(article.id)
+                    FeedCard(article: article)
+                        .id(article.id)
+                        .onAppear {
+                            visibleIDs.insert(article.id)
+                            loadMoreIfNeeded()
                         }
-                    }
-                    .id(article.id)
-                    .onAppear {
-                        visibleIDs.insert(article.id)
-                        loadMoreIfNeeded()
-                    }
-                    .onDisappear { visibleIDs.remove(article.id) }
+                        .onDisappear { visibleIDs.remove(article.id) }
                 }
                 status
             }
@@ -78,8 +71,6 @@ struct FeedScreen: View {
 
 private struct FeedCard: View {
     let article: FeedArticle
-    let isExpanded: Bool
-    let onToggle: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -96,17 +87,12 @@ private struct FeedCard: View {
                 }
                 .frame(height: 150).clipped().accessibilityHidden(true)
             }
-            VStack(alignment: .leading, spacing: 16) {
-                Button(action: onToggle) {
-                    Text(article.title ?? String(localized: "feed.noTitle"))
-                        .font(.headline).multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint(isExpanded ? "feed.collapse" : "feed.expand")
-                if isExpanded { Text(article.summary ?? String(localized: "feed.noSummary")) }
+            VStack(alignment: .leading, spacing: 0) {
+                Text(article.title ?? String(localized: "feed.noTitle"))
+                    .font(.headline).multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 if article.source != nil || article.publishedAt != nil {
-                    Text(metadata).font(.caption).foregroundStyle(.secondary)
+                    Text(metadata).font(.caption).foregroundStyle(.secondary).padding(.top, 16)
                 }
             }
             .padding(16)
@@ -114,6 +100,7 @@ private struct FeedCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("feed.article.\(article.id)")
     }
 

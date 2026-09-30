@@ -1,7 +1,6 @@
 package com.ndynagn.kmp.news.feature.feed.presentation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,22 +26,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.ndynagn.kmp.news.feature.feed.domain.Article
 import kmpnews.sharedui.generated.resources.Res
-import kmpnews.sharedui.generated.resources.feed_collapse
 import kmpnews.sharedui.generated.resources.feed_empty
 import kmpnews.sharedui.generated.resources.feed_end
-import kmpnews.sharedui.generated.resources.feed_expand
 import kmpnews.sharedui.generated.resources.feed_image_error
 import kmpnews.sharedui.generated.resources.feed_limit
 import kmpnews.sharedui.generated.resources.feed_loading
 import kmpnews.sharedui.generated.resources.feed_missing_key
-import kmpnews.sharedui.generated.resources.feed_no_summary
 import kmpnews.sharedui.generated.resources.feed_no_title
 import kmpnews.sharedui.generated.resources.feed_retry
 import kmpnews.sharedui.generated.resources.feed_storage_error
@@ -55,8 +50,6 @@ import org.jetbrains.compose.resources.stringResource
 internal fun FeedScreen(
     state: FeedUiState,
     listState: LazyListState,
-    expanded: List<String>,
-    onToggle: (String) -> Unit,
     onEvent: (FeedEvent) -> Unit,
     formatDate: (Long) -> String,
     modifier: Modifier = Modifier,
@@ -82,7 +75,7 @@ internal fun FeedScreen(
             modifier = Modifier.fillMaxSize().testTag("feed.list"),
         ) {
             items(articles, key = { it.id }) { article ->
-                FeedCard(article, article.id in expanded, { onToggle(article.id) }, formatDate)
+                FeedCard(article, formatDate)
             }
             // Keep the initial loading footer positional so the first snapshot starts at article zero.
             item {
@@ -124,7 +117,7 @@ internal fun FeedScreen(
 }
 
 @Composable
-private fun FeedCard(article: Article, expanded: Boolean, onToggle: () -> Unit, formatDate: (Long) -> String) {
+private fun FeedCard(article: Article, formatDate: (Long) -> String) {
     Card(Modifier.fillMaxWidth().testTag("feed.article.${article.id}")) {
         if (article.imageUrl != null) {
             SubcomposeAsyncImage(
@@ -144,17 +137,11 @@ private fun FeedCard(article: Article, expanded: Boolean, onToggle: () -> Unit, 
             )
         }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            val actionLabel = stringResource(if (expanded) Res.string.feed_collapse else Res.string.feed_expand)
             Text(
                 article.title ?: stringResource(Res.string.feed_no_title),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.fillMaxWidth().clickable(
-                    role = Role.Button,
-                    onClickLabel = actionLabel,
-                    onClick = onToggle,
-                ),
+                modifier = Modifier.fillMaxWidth(),
             )
-            if (expanded) Text(article.summary ?: stringResource(Res.string.feed_no_summary))
             val metadata = listOfNotNull(article.sourceName, article.publishedAtEpochMilliseconds?.let(formatDate))
             if (metadata.isNotEmpty()) Text(metadata.joinToString(" · "), style = MaterialTheme.typography.labelMedium)
         }

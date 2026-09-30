@@ -54,7 +54,6 @@ fun MobileApp(
     val feedViewModel = viewModel { FeedViewModel(newsRepository, refreshFeedIfNeeded, isConfigured) }
     val state by feedViewModel.state.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf(0) }
-    var expanded by rememberSaveable { mutableStateOf(arrayListOf<String>()) }
     val listState = rememberLazyListState()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(selected, lifecycle, feedViewModel) {
@@ -103,11 +102,6 @@ fun MobileApp(
                             FeedScreen(
                                 state,
                                 listState,
-                                expanded,
-                                onToggle = { id ->
-                                    expanded =
-                                        ArrayList(if (id in expanded) expanded - id else expanded + id)
-                                },
                                 onEvent = feedViewModel::onEvent,
                                 formatDate = formatDate,
                             )

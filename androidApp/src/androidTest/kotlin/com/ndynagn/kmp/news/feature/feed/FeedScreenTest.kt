@@ -42,27 +42,27 @@ class FeedScreenTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun tabsExpansionAndScrollSurviveRestoration() {
+    fun cardsOmitDescriptionsAndScrollSurvivesRestoration() {
         val repository = FakeScreenRepository()
         val restoration = StateRestorationTester(compose)
         restoration.setContent {
             MobileApp(repository, RefreshFeedIfNeeded(repository, FeedClock { 10 }), true, { "30.09.2026" })
         }
-        compose.onNodeWithText("News 0").performClick()
+        compose.onNodeWithText("News 0").assertIsDisplayed()
         compose.waitForIdle()
-        capture("android-expanded")
-        compose.onNodeWithText("Summary 0").assertIsDisplayed()
+        capture("android-card")
+        compose.onNodeWithText("Summary 0").assertDoesNotExist()
         compose.onNodeWithText("Избранное").performClick()
         compose.onNodeWithText("Раздел в разработке").assertIsDisplayed()
         compose.onNodeWithText("Профиль").performClick()
         compose.onNodeWithText("Раздел в разработке").assertIsDisplayed()
         compose.onNodeWithText("Новости").performClick()
-        compose.onNodeWithText("Summary 0").assertIsDisplayed()
+        compose.onNodeWithText("Summary 0").assertDoesNotExist()
         compose.onNodeWithTag("feed.list").performScrollToIndex(5)
-        compose.onNodeWithText("News 5").performClick()
-        compose.onNodeWithText("Summary 5").assertIsDisplayed()
+        compose.onNodeWithText("News 5").assertIsDisplayed()
+        compose.onNodeWithText("News 5").assertIsDisplayed()
         restoration.emulateSavedInstanceStateRestore()
-        compose.onNodeWithText("Summary 5").assertIsDisplayed()
+        compose.onNodeWithText("News 5").assertIsDisplayed()
     }
 
     @Test
@@ -100,8 +100,8 @@ class FeedScreenTest {
                 }
             }
         }
-        compose.onNodeWithText("News 0").performClick()
-        compose.onNodeWithText("Summary 0").assertIsDisplayed()
+        compose.onNodeWithText("News 0").assertIsDisplayed()
+        compose.onNodeWithText("Summary 0").assertDoesNotExist()
         compose.onNodeWithText("Избранное").assertIsDisplayed()
         compose.onNodeWithText("Профиль").assertIsDisplayed()
         capture("android-dark-large-text")

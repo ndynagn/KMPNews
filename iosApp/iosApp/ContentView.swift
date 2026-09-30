@@ -5,7 +5,6 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selected = 0
     @State private var feedViewModel: FeedViewModel
-    @State private var expanded: Set<String> = []
     @State private var scrollID: String?
 
     init(dependencies: FeedDependencies, isConfigured: Bool) {
@@ -21,17 +20,17 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selected) {
             NavigationStack {
-                FeedScreen(viewModel: feedViewModel, expanded: $expanded, scrollID: $scrollID)
+                FeedScreen(viewModel: feedViewModel, scrollID: $scrollID)
                     .navigationTitle("home.news")
-                    .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarTitleDisplayMode(.large)
             }
             .tabItem { Label("home.news", systemImage: "newspaper") }.tag(0)
             NavigationStack {
-                Text("home.placeholder").navigationTitle("home.favorites").navigationBarTitleDisplayMode(.inline)
+                Text("home.placeholder").navigationTitle("home.favorites").navigationBarTitleDisplayMode(.large)
             }
             .tabItem { Label("home.favorites", systemImage: "star") }.tag(1)
             NavigationStack {
-                Text("home.placeholder").navigationTitle("home.profile").navigationBarTitleDisplayMode(.inline)
+                Text("home.placeholder").navigationTitle("home.profile").navigationBarTitleDisplayMode(.large)
             }
             .tabItem { Label("home.profile", systemImage: "person") }.tag(2)
         }

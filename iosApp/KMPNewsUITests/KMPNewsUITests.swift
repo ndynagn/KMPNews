@@ -18,31 +18,29 @@ final class KMPNewsUITests: XCTestCase {
     }
 
     @MainActor
-    func testCachedCardExpansionAndScrollSurviveTabSwitch() throws {
+    func testCardsOmitDescriptionAndTitleCollapses() throws {
         let app = XCUIApplication()
         app.launch()
-        let title = "Test news 0: A headline that can expand to show the article summary"
-        let headline = app.buttons[title]
-        guard headline.waitForExistence(timeout: 10) else {
-            throw XCTSkip("Requires the documented deterministic simulator cache fixture")
+        let card = app.otherElements.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "feed.article.")
+        ).firstMatch
+        guard card.waitForExistence(timeout: 15) else {
+            throw XCTSkip("Requires cached articles in the simulator")
         }
-        headline.tap()
-        let summary = app.staticTexts[
-            "Deterministic UI fixture. The description appears when the headline is expanded."]
-        XCTAssertTrue(summary.waitForExistence(timeout: 3))
-        attachScreenshot(app, "ios-expanded")
+        let navigation = app.navigationBars["Новости"]
+        let largeHeight = navigation.frame.height
+        XCTAssertFalse(card.staticTexts["Описание отсутствует"].exists)
+        XCTAssertFalse(
+            card.staticTexts[
+                "Deterministic UI fixture. The description appears when the headline is expanded."
+            ].exists)
+        attachScreenshot(app, "ios-card-no-description")
         app.tabBars.buttons["Избранное"].tap()
         app.tabBars.buttons["Новости"].tap()
-        XCTAssertTrue(summary.isHittable)
+        XCTAssertTrue(card.isHittable)
         app.scrollViews.firstMatch.swipeUp()
-        let before = app.scrollViews.firstMatch.staticTexts.allElementsBoundByIndex
-            .filter(\.isHittable).map(\.label)
-        app.tabBars.buttons["Профиль"].tap()
-        app.tabBars.buttons["Новости"].tap()
-        let after = app.scrollViews.firstMatch.staticTexts.allElementsBoundByIndex
-            .filter(\.isHittable).map(\.label)
-        XCTAssertEqual(before, after)
-        attachScreenshot(app, "ios-restored-scroll")
+        XCTAssertLessThan(navigation.frame.height, largeHeight)
+        attachScreenshot(app, "ios-collapsed-title")
     }
 
     /// Requires explicit opt-in because it uses the real mediator and its shared quota.

@@ -12,12 +12,14 @@ Russian; provider articles retain the existing English, unfiltered-country contr
 Desktop and macOS retain their starter entry points.
 
 Cards adapt [Effective Compose sample's HeadlineCard](https://gitlab.com/effectivepublic/android/compose-sample/-/blob/c0d4de95fac40416d6564b16c849c4bab9a81403/screens/feed/src/main/kotlin/band/effective/headlines/compose/feed/presentation/components/HeadlineCard.kt):
-an optional 150 dp/pt image, 16 dp/pt internal padding, expandable title/description,
-and optional source/date. The whole card does not open a URL. Missing title and
-summary have localized neutral labels; absent images/source/date are omitted.
+an optional 150 dp/pt image, title, 16 dp/pt internal padding, and optional source/date.
+Cards do not display descriptions and have no expansion or tap action. Descriptions
+are reserved for the future news-detail screen, which is not implemented in this task.
+iOS uses native large navigation titles that collapse as the feed scrolls.
+Missing titles have a localized neutral label; absent images/source/date are omitted.
 Image failures display a neutral placeholder. Dates use the device locale/time zone.
-Expansion and scroll position survive tab switching; Compose also saves them for
-Activity recreation. Re-selecting a tab does not reset it.
+Scroll position survives tab switching; Compose also saves it for Activity recreation.
+Re-selecting a tab does not reset it.
 
 Pull-to-refresh requests page one. Reaching the final three cards requests the next
 opaque cursor. Only one operation runs at a time. An append failure disables further
@@ -192,3 +194,30 @@ Migration verification (2026-09-30):
 The earlier verification section describes the original implementation. Live API
 and remote-image success checks remain unavailable without credentials. Physical
 devices and process-death restoration were not tested in this migration.
+
+### Height-only card animation and iOS titles (2026-09-30)
+
+- iOS uses large navigation titles and native scroll collapse. Card taps animate
+  description height with bottom clipping and no opacity transition; Reduce Motion
+  disables the explicit animation. Android uses vertical expand/shrink transitions
+  without fade. The whole card is the toggle target on both platforms.
+- Android Debug/test APKs and Desktop Kotlin compilation passed. All four
+  deterministic FeedScreenTest scenarios passed on Pixel_10, including large-text
+  dark layout and state restoration (`/tmp/kmpnews-design-final-android.log`).
+- iOS build and card-height/title-collapse UI test passed on iPhone 18 Pro / iOS 27
+  (`/tmp/kmpnews-design-verified.xcresult`). The test accepts either initial expansion
+  state and verifies a height change followed by restoration; it waits for animation.
+  The tab/placeholder test also passed in the preceding run.
+- Targeted Spotless and Swift formatting checks passed. Screenshots were visually
+  inspected. These checks establish final geometry and interactions, not frame-by-frame
+  animation timing or physical-device performance. macOS was not rebuilt: its sources
+  and project configuration are unchanged.
+
+Card description removal supersedes the expansion behavior recorded in historical
+verification above. Description data remains in domain/data for the future detail screen.
+
+Description-removal verification (2026-09-30): Android Debug/test APKs and Desktop
+compilation passed; all four FeedScreenTest scenarios passed with description-absence
+and scroll-restoration assertions. iOS build and the card/title/tab UI scenario passed
+(`/tmp/kmpnews-no-summary-verified.xcresult`). Final Android/iOS screenshots were
+inspected; targeted formatting checks and `git diff --check` passed.
