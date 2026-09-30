@@ -85,17 +85,17 @@ Formatting is explicit and restricted to intended files during adoption. See
 ## Presentation contract naming
 
 Use feature-prefixed files such as `FeedScreen.kt`, `FeedViewModel.kt` and
-`FeedUiState.kt`. For MVI, add `FeedIntent.kt`, `FeedEffect.kt` when outputs exist,
-and `FeedReducer.kt` for the pure transition logic. Prefer sealed interfaces for
-closed Intent/Effect alternatives and data classes for composable UiState; use
-sealed state variants only for mutually exclusive cases. These names illustrate
-the pattern, not a requirement to scaffold a feature or empty types.
+`FeedUiState.kt`. Project-owned MVI uses `FeedEvent.kt` and `FeedSideEffect.kt`
+when outputs exist. Add a reducer and internal messages only when the architecture
+selection procedure justifies separate transitions. Prefer sealed interfaces for
+payload-bearing Event/SideEffect alternatives; enums suffice for payload-free inputs.
+Use sealed state variants for exclusive modes and immutable data for coexisting details.
 
-Expose `StateFlow<FeedUiState>` rather than MutableStateFlow; `_state` remains the
-permitted private backing pair. Use explicit action methods for MVVM and a clearly
-named `onIntent(intent: FeedIntent)` boundary for MVI. Keep side-effect execution
-out of reducers and keep Flow collectors out of immutable UiState values.
-Shared Compose contracts live in sharedUI, never sharedLogic.
+Expose `StateFlow<FeedUiState>` rather than MutableStateFlow. Use explicit action
+methods for MVVM and `onEvent(event: FeedEvent)` for project-owned MVI. Keep async
+coordination in ViewModel; simple MVI updates state directly in its handlers.
+Shared Compose contracts live in sharedUI, never sharedLogic. Preserve external
+framework naming without wrappers solely for vocabulary alignment.
 
 Use constructor parameters with meaningful names for Koin-provided collaborators.
 DI resolution syntax belongs to composition, not domain/data methods. DTOs and

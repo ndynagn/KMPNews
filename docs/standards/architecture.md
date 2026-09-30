@@ -39,8 +39,9 @@ reuse appears. Shared technical services must have a concrete name and scope;
 | Use case | Business policy, coordinating dependencies or reusable operations | Forwarding one repository call with no added meaning |
 | Explicit mapper/adapter | Translating a real transport, storage or platform boundary | Reflection-based hidden mapping and DTO leakage |
 | Constructor injection | Supplying collaborators through a composition root | Service locators and global mutable dependencies |
-| MVVM with UDF | Simple screen state and independent user actions | Compulsory reducers or event buses for simple screens |
-| MVI | Coupled transitions, competing requests or complex coordination | Naming ordinary callbacks Intent without explicit transition rules |
+| MVVM with UDF | Independent reads, edits and saves | Compulsory event protocols for independent actions |
+| MVI inside ViewModel | Coordinated requests, refresh, retry, pagination or item operations | An intermediate message/reducer protocol with no concrete benefit |
+| MVI with separate transitions | Event history and interacting phases determine valid transitions | Selecting by screen name, button count or asynchronous work alone |
 | Composition | Combining focused behavior/components | BaseViewModel/BaseRepository hierarchies without a demonstrated need |
 
 KISS/YAGNI mean implementing the agreed contract without speculative layers.
@@ -59,30 +60,88 @@ Never make a screen ViewModel an app-wide singleton.
 
 ## Presentation contracts
 
-Both patterns use unidirectional state flow. A feature contract records the choice
-and why it fits the interactions, rather than selecting by screen size or number
-of widgets. MVVM exposes immutable UiState and named action methods. MVI separates
-View, ViewModel, UiState, Intent and Effect into focused files. Its ViewModel owns
-coordination; a pure reducer computes state transitions, with I/O outside it.
-Internal operation results may have their own transition inputs; do not mislabel
-them as user intentions. No MVI framework or universal BaseViewModel is required.
+All variants use unidirectional data flow and controlled state mutation. This is a
+project classification, not a universal definition of MVVM/MVI. Native Swift
+presentation remains separate from shared Compose presentation.
 
-Use a data class (Swift struct) for composable state; use sealed types (Swift enum
-with associated values) for mutually exclusive variants. Content can coexist with
-refresh or an append failure. Avoid contradictory loading/error booleans and do
-not require every state to be a sealed hierarchy. Presentation types stay outside
-sharedLogic, including when Compose and Swift implement the same business feature.
+### Selection procedure
 
-Intent names incoming MVI actions; Effect names one-time output signals. Specify
-each effect's owner, subscriber, buffering/replay, handling on recreation and
-behavior without a subscriber. A SharedFlow or Channel alone does not guarantee
-delivery. Keep results needed to complete a scenario in state; a UI feedback
-notification may be transient. Navigation remains in the presentation stack.
-Do not add empty effect types or buses when a feature has no one-time outputs.
+1. Static UI without data work needs no ceremonial ViewModel.
+2. Choose MVVM with named methods for independent reads, local edits and saves.
+3. Choose MVI inside ViewModel when requests need coordination or the feature
+   benefits from one explicit event contract. This is the default for functional
+   screens such as feeds, search and favorites. Handlers own transitions and work.
+4. Extract a pure reducer only when a concrete sequence of interacting events
+   determines valid transitions and independent transition tests improve clarity.
+   Record that sequence and its transition table in the feature contract.
+5. Before escalating, check whether the complexity belongs in domain policy or
+   an independently owned part of the screen.
 
-Specify request coordination per feature: cancellation/replacement, serial work,
-or allowed overlap, and how stale responses are handled. Do not invent one global
-concurrency policy. Test transitions and asynchronous coordination independently.
+Simple profiles/settings illustrate MVVM. A paginated feed illustrates MVI inside
+ViewModel. A player with seek/buffer/reconnect phases or an editor with conflicting
+local/remote changes may justify separate transitions. Names such as "checkout"
+do not select a pattern automatically. Button count, ViewModel length, coroutines,
+cache, pagination and WebSocket usage alone are not escalation criteria.
+
+### Contracts and vocabulary
+
+Keep Screen, State and ViewModel in focused files. For project-owned MVI use
+`Event` for incoming user actions; explicit lifecycle methods or lifecycle events
+must document ownership. Add `SideEffect` only for actual one-time UI commands.
+`Message` is an internal reducer input only in the separate-transition variant.
+`Operation` and error types are feature-specific data, not mandatory MVI layers.
+Do not add a universal BaseViewModel or an empty effect bus.
+
+In MVVM, named methods update state. In MVI inside ViewModel, `onEvent` dispatches
+to handlers that update state directly and coordinate domain calls. With separate
+transitions, the coordinator performs I/O and the pure reducer computes state
+from internal messages. Business policy remains in domain in all variants.
+
+### State shape
+
+Choose state shape independently from event handling. Use sealed Kotlin variants
+or Swift enums with associated values for mutually exclusive modes. For the feed
+these are Initial, Loading, Empty, Error and Content. Represent coexisting details
+inside their mode: Content retains cards during refresh, append failures and
+item-specific operations. Use typed statuses where they clarify valid combinations;
+do not create one class for every combination of independent operations.
+UI-local expansion, focus and scroll may stay in Views with explicit restoration.
+Keep collectors, jobs and mutable SDK objects outside published state.
+
+### Asynchronous work and effects
+
+For each operation record its owner, trigger, concurrency/replacement policy,
+cancellation, stale-response handling and retry. These obligations apply to all
+three variants; a reducer or library does not supply the feature policy.
+
+For each SideEffect record recipient, buffering/replay, recreation and behavior
+without a subscriber. A SharedFlow or Channel alone does not guarantee exactly-once
+delivery. Critical results belong in state or persisted data; navigation, sharing
+and system UI execution belong to the client. Keep task/subscription lifetimes
+separate from the lifetime of UI observers.
+
+### MVIKotlin admission
+
+[MVIKotlin](https://arkivanov.github.io/MVIKotlin/) is a candidate, not an installed
+or required dependency. Consider it for Kotlin presentation with separate
+transitions and a demonstrated need for a standard Store, logging or time travel.
+Admission requires a separate recorded architecture decision, target compatibility
+checks, Store ownership/disposal and integration with existing navigation.
+A shared Kotlin presentation Store for SwiftUI is outside the accepted boundary.
+
+Preserve library terminology: Intent corresponds to project Event, Label to
+SideEffect, and Message to an internal transition input. Do not wrap solely to
+rename these types. Store/Executor coordination calls domain contracts rather
+than moving business policy into presentation. Swift uses native presentation
+with the same observable behavior, not imported Kotlin presentation contracts.
+
+[Store documentation](https://arkivanov.github.io/MVIKotlin/store/) describes
+Executor async work and Reducer transitions. Labels are delivered to current
+subscribers without caching; they do not make critical results durable.
+[Binding lifecycle](https://arkivanov.github.io/MVIKotlin/binding_and_lifecycle/)
+and [state preservation](https://arkivanov.github.io/MVIKotlin/state_preservation/)
+must be designed explicitly: unbinding a View is not disposing a Store and
+using the library does not automatically restore application state.
 
 ## Contracts, data and concurrency
 

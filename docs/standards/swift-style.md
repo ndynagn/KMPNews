@@ -77,12 +77,13 @@ on do/catch to recover unhandled Kotlin exceptions escaping an exported Flow.
 Use typed initializer injection, not Koin lookup inside Swift Views/ViewModels.
 Reuse SharedLogic data/domain rather than adding Swift network/database copies.
 
-For MVVM use a feature-prefixed UiState struct and explicit action methods. For
-MVI keep View, ViewModel, UiState, Intent, Effect (when needed) and reducer in
-separate focused files. Use Swift enums with associated values for closed
-Intent/Effect or mutually exclusive state alternatives. Apply the same transition
-and effect-delivery contract as Compose, without importing its presentation types.
-Keep the reducer pure and perform async work outside it.
+Use feature-prefixed State and explicit action methods for MVVM. Project-owned MVI
+keeps Screen, ViewModel, State, Event and SideEffect (when needed) in focused files.
+Use `onEvent` and update state inside ViewModel handlers by default. Separate a pure
+reducer only when the architecture selection procedure justifies it. Use Swift
+enums with associated values for exclusive modes and structs for coexisting data.
+Apply the same behavior and effect-delivery contract as Compose, without importing
+Kotlin presentation types or an MVI framework into native Swift presentation.
 
 Use NavigationStack/NavigationSplitView according to the native experience and
 Nuke/NukeUI for images once admitted by the [stack gate](technology-stack.md).

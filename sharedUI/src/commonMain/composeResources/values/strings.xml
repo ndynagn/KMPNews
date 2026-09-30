@@ -1,0 +1,19 @@
+<resources>
+    <string name="home_news">Новости</string>
+    <string name="home_favorites">Избранное</string>
+    <string name="home_profile">Профиль</string>
+    <string name="home_placeholder">Раздел в разработке</string>
+    <string name="feed_no_title">Без заголовка</string>
+    <string name="feed_no_summary">Описание отсутствует</string>
+    <string name="feed_empty">Новостей пока нет</string>
+    <string name="feed_retry">Повторить</string>
+    <string name="feed_storage_error">Не удалось прочитать сохранённые новости</string>
+    <string name="feed_update_error">Не удалось загрузить новости</string>
+    <string name="feed_missing_key">Обновление недоступно: не настроен ключ API</string>
+    <string name="feed_end">Все новости загружены</string>
+    <string name="feed_limit">Сохранено 200 новостей</string>
+    <string name="feed_expand">Показать описание</string>
+    <string name="feed_collapse">Скрыть описание</string>
+    <string name="feed_image_error">Изображение недоступно</string>
+    <string name="feed_loading">Загрузка новостей</string>
+</resources>

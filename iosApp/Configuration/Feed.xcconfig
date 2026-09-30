@@ -1,0 +1,3 @@
+// Optional local prototype credential; never commit Local.xcconfig.
+NEWSDATA_API_KEY =
+#include? "Local.xcconfig"

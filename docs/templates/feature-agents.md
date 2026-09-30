@@ -16,7 +16,7 @@ folders must be excluded from target membership and checked in the built bundle.
 - Permitted dependencies: <public domain contracts / shared services>.
 - Platform-specific instructions: <only additional behavior, not copied rules>.
 - Presentation ownership: <sharedUI Compose; native Swift client; host adapters>.
-- Pattern: <MVVM or MVI, with a reason based on interactions and coordination>.
+- Pattern: <MVVM / MVI inside ViewModel / MVI with separate transitions; concrete scenario and reason>.
 
 ### Invariants and behavior
 
@@ -27,8 +27,8 @@ folders must be excluded from target membership and checked in the built bundle.
 ### State, actions and effects
 
 - <UiState shape and valid combinations; mutually exclusive states where needed>.
-- <MVVM action methods or MVI Intent inputs, transition rules and pure reducer>.
-- <effect recipient, delivery/replay, no-subscriber behavior and recreation>.
+- <MVVM methods or MVI Event inputs; handler transitions; a reducer only with its selection rationale>.
+- <SideEffect recipient, delivery/replay, no-subscriber behavior and recreation; omit empty protocols>.
 - <results that must persist in state rather than rely on transient delivery>.
 - <request ordering, replacement/cancellation, overlap and stale-response policy>.
 

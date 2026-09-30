@@ -6,6 +6,9 @@ This is a review aid, not an automated gate or an assertion about the whole repo
 
 - Read root, owning module and applicable descendant instructions, including
   cross-source-set feature contracts. Check [architecture](architecture.md).
+- Verify the presentation variant has a concrete scenario-based rationale; do
+  not require reducers for every MVI screen. Check State/Event/SideEffect naming,
+  valid state combinations, concurrency and no-subscriber effect behavior.
 - Check roles and dependency direction: native/shared presentation ownership,
   domain contracts, data-only DTOs/entities/mapping, composition-root injection.
 - Check names at their use sites: purpose, operation verb, implementation role,

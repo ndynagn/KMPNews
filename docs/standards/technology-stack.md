@@ -28,9 +28,12 @@ images, not business API payloads. Apple presentation contracts remain Swift-own
 Compose ViewModels are shared code with separate screen/window instances, not
 shared mutable state across every client or window.
 
-Use MVVM for simple interactions and MVI for complex coordination, following the
-[presentation contracts](architecture.md#presentation-contracts). No separate MVI
-framework, universal BaseViewModel or toolchain upgrade is selected by this decision.
+Select MVVM, MVI inside ViewModel or MVI with separate transitions using the
+[presentation contracts](architecture.md#presentation-contracts). MVIKotlin is a
+candidate for justified complex Kotlin presentation, not an admitted dependency.
+Its use requires a separate architecture decision and compatibility checks.
+No universal BaseViewModel, shared Kotlin Store for SwiftUI or toolchain upgrade
+is selected by this decision.
 
 Koin Compiler Plugin 1.2.1 is selected with Koin 4.2.2 and Kotlin 2.4.20.
 Use compiler DSL auto-wiring without annotations on business classes, explicit

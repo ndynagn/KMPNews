@@ -42,3 +42,8 @@ Additional review routing: apply [Apple resource naming](../docs/standards/swift
 and [Swift declaration organization](../docs/standards/swift-style.md#acronyms-and-declaration-organization);
 use [test conventions](../docs/standards/verification.md#test-and-fixture-conventions)
 for native fixtures and automation identifiers.
+
+Select the presentation variant using architecture; coordinated requests alone
+do not require a reducer. Record events, states, concurrency and acceptance
+scenarios in the feature contract. Native and Compose contracts share behavior,
+not presentation types.
