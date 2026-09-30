@@ -29,15 +29,15 @@ Responses use `Cache-Control: no-store`.
 
 Errors: `{status:"error", results:{code:string}}`, with no raw provider messages.
 
-| HTTP | Code | Client failure |
-| --- | --- | --- |
-| 401/403 | AccessDenied | ACCESS_DENIED |
-| 400/405 | InvalidRequest | INVALID_REQUEST |
-| 429 | RateLimitExceeded | RATE_LIMITED |
-| 429 | ApiLimitExceeded | QUOTA_EXCEEDED |
-| 502 | InvalidResponse | INVALID_RESPONSE |
-| 503 | ServiceUnavailable | SERVER_UNAVAILABLE |
-| 504 | UpstreamTimeout | TIMEOUT |
+| HTTP    | Code               | Client failure     |
+|---------|--------------------|--------------------|
+| 401/403 | AccessDenied       | ACCESS_DENIED      |
+| 400/405 | InvalidRequest     | INVALID_REQUEST    |
+| 429     | RateLimitExceeded  | RATE_LIMITED       |
+| 429     | ApiLimitExceeded   | QUOTA_EXCEEDED     |
+| 502     | InvalidResponse    | INVALID_RESPONSE   |
+| 503     | ServiceUnavailable | SERVER_UNAVAILABLE |
+| 504     | UpstreamTimeout    | TIMEOUT            |
 
 Budget rejections include `Retry-After` in seconds. Provider errors are mapped
 from their code/status; the proxy does not invent a retry time for them.
