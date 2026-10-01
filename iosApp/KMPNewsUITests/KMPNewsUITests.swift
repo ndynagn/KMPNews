@@ -126,13 +126,12 @@ final class KMPNewsUITests: XCTestCase {
     @MainActor
     func testCardsOmitDescriptionAndTitleCollapses() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["--feed-ui-fixture", "--auth-ui-fixture"]
         app.launch()
         let card = app.otherElements.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "feed.article.")
         ).firstMatch
-        guard card.waitForExistence(timeout: 15) else {
-            throw XCTSkip("Requires cached articles in the simulator")
-        }
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
         let navigation = app.navigationBars["Новости"]
         let largeHeight = navigation.frame.height
         XCTAssertFalse(card.staticTexts["Описание отсутствует"].exists)

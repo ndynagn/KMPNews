@@ -38,17 +38,27 @@ struct FeedScreen: View {
             if state.status.operation != nil || isInitiallyLoading {
                 ProgressView("feed.loading")
             }
-            if !state.status.isConfigured { Text("feed.missingKey") }
+            if !state.status.isConfigured {
+                AppStatusView(
+                    title: "feed.unavailableTitle", systemImage: "network.slash",
+                    message: "feed.missingKey", compact: state.snapshot != nil)
+            }
             if state.status.storageFailed || state.status.failedOperation != nil {
-                Text(state.status.storageFailed ? "feed.storageError" : "feed.updateError")
-                AppButton(title: "feed.retry") { viewModel.onEvent(.retry) }.accessibilityIdentifier("feed.retryButton")
+                AppStatusView(
+                    title: "feed.unavailableTitle", systemImage: "exclamationmark.circle",
+                    message: state.status.storageFailed ? "feed.storageError" : nil,
+                    compact: state.snapshot != nil)
+                AppActionButton(title: "feed.retry", isEnabled: state.status.operation == nil) {
+                    viewModel.onEvent(.retry)
+                }
+                .accessibilityIdentifier("feed.retryButton")
             } else if state.status.operation == nil {
                 if case .empty = state {
-                    Text("feed.empty")
+                    AppStatusView(title: "feed.empty", systemImage: "newspaper")
                 } else if state.snapshot?.isCacheLimitReached == true {
-                    Text("feed.limit")
+                    Text("feed.limit").font(.footnote).foregroundStyle(.secondary)
                 } else if state.snapshot?.hasMore == false {
-                    Text("feed.end")
+                    Text("feed.end").font(.footnote).foregroundStyle(.secondary)
                 }
             }
         }
@@ -73,33 +83,21 @@ private struct FeedCard: View {
     let article: FeedArticle
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        AppNewsPreview(
+            title: article.title ?? String(localized: "feed.noTitle"), metadata: metadata,
+            showsImage: article.imageURL != nil
+        ) {
             if let imageURL = article.imageURL {
                 LazyImage(url: imageURL) { state in
                     if let image = state.image {
                         image.resizable().scaledToFill()
                     } else {
-                        ZStack {
-                            Color(uiColor: .tertiarySystemFill)
-                            if state.error != nil { Text("feed.imageError").font(.caption) }
-                        }
+                        AppImagePlaceholder(state: state.error == nil ? .loading : .unavailable)
                     }
                 }
-                .frame(height: 150).clipped().accessibilityHidden(true)
+                .accessibilityHidden(true)
             }
-            VStack(alignment: .leading, spacing: 0) {
-                Text(article.title ?? String(localized: "feed.noTitle"))
-                    .font(.headline).multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if article.source != nil || article.publishedAt != nil {
-                    Text(metadata).font(.caption).foregroundStyle(.secondary).padding(.top, 16)
-                }
-            }
-            .padding(16)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("feed.article.\(article.id)")
     }

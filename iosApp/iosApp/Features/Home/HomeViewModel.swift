@@ -25,6 +25,14 @@ final class HomeViewModel {
     }
 
     func prepare() {
+        #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--feed-ui-fixture") {
+                if feedViewModel == nil {
+                    feedViewModel = FeedViewModel(client: FeedUITestClient(), isConfigured: true)
+                }
+                return
+            }
+        #endif
         guard dependencies == nil else { return }
 
         do {

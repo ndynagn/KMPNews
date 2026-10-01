@@ -37,14 +37,17 @@ struct ContentView: View {
                         FeedScreen(viewModel: feedViewModel, scrollID: $scrollID)
                     } else if homeViewModel.storageFailed {
                         VStack {
-                            Text("feed.storageError")
-                            AppButton(title: "feed.retry") {
+                            AppStatusView(
+                                title: "feed.unavailableTitle", systemImage: "exclamationmark.circle",
+                                message: "feed.storageError")
+                            AppActionButton(title: "feed.retry") {
                                 homeViewModel.prepare()
                                 updateActivity()
                             }
                         }
+                        .padding(16)
                     } else {
-                        ProgressView()
+                        ProgressView("feed.loading")
                     }
                 }
                 .navigationTitle("home.news")

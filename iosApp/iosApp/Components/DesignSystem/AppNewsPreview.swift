@@ -1,44 +1,45 @@
 import SwiftUI
 
 /// Presentation-only news composition; image loading and article policy belong to its caller.
-struct AppNewsPreview: View {
+struct AppNewsPreview<Thumbnail: View>: View {
     let title: String
-    let source: String
+    var metadata: String?
     var compact = false
-    var imageUnavailable = false
-    let action: () -> Void
+    var showsImage = true
+    @ViewBuilder var thumbnail: Thumbnail
 
     var body: some View {
-        Button(action: action) {
+        Group {
             if compact {
                 HStack(alignment: .top, spacing: 12) {
-                    thumbnail.frame(width: 64, height: 64).clipShape(.rect(cornerRadius: 8))
+                    if showsImage {
+                        thumbnail.frame(width: 64, height: 64).clipShape(.rect(cornerRadius: 8))
+                    }
                     caption
                 }
+                .padding(16)
             } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    thumbnail.frame(height: 160).clipShape(.rect(cornerRadius: 12))
-                    caption
+                VStack(alignment: .leading, spacing: 0) {
+                    if showsImage {
+                        thumbnail.frame(height: 160).clipped()
+                    }
+                    caption.padding(16)
                 }
             }
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+        .clipShape(.rect(cornerRadius: 12))
     }
 
     private var caption: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.headline).foregroundStyle(.primary)
-            Text(source).font(.caption).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var thumbnail: some View {
-        Rectangle().fill(Color(uiColor: .tertiarySystemFill))
-            .overlay {
-                Image(systemName: imageUnavailable ? "photo.badge.exclamationmark" : "photo")
-                    .font(.largeTitle).foregroundStyle(.secondary)
+            if let metadata, !metadata.isEmpty {
+                Text(metadata).font(.caption).foregroundStyle(.secondary)
             }
-            .accessibilityLabel(Text(imageUnavailable ? "kit.imageUnavailable" : "kit.sampleImage"))
+        }
+        .multilineTextAlignment(.leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

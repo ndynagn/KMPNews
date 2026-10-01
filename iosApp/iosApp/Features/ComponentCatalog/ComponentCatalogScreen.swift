@@ -34,6 +34,7 @@
                 NavigationLink("kit.content") { content.navigationTitle("kit.content") }
                     .accessibilityIdentifier("kit.contentLink")
                 NavigationLink("kit.states") { states.navigationTitle("kit.states") }
+                    .accessibilityIdentifier("kit.statesLink")
                 NavigationLink("kit.profile") { profile.navigationTitle("kit.profile") }
                     .accessibilityIdentifier("kit.profileLink")
                 Section("kit.forms") {
@@ -147,20 +148,29 @@
         }
 
         private func news(compact: Bool) -> some View {
-            AppNewsPreview(
-                title: String(localized: "kit.newsTitle"), source: String(localized: "kit.newsSource"),
-                compact: compact, imageUnavailable: viewModel.imageUnavailable, action: viewModel.showFeedback)
+            Button(action: viewModel.showFeedback) {
+                AppNewsPreview(
+                    title: String(localized: "kit.newsTitle"), metadata: String(localized: "kit.newsSource"),
+                    compact: compact
+                ) {
+                    AppImagePlaceholder(state: viewModel.imageUnavailable ? .unavailable : .sample)
+                }
+            }
+            .buttonStyle(.plain)
         }
 
         private var states: some View {
             List {
                 Section("kit.loading") { ProgressView("kit.loading") }
                 Section("kit.empty") {
-                    ContentUnavailableView("kit.empty", systemImage: "newspaper", description: Text("kit.emptyHint"))
+                    AppStatusView(title: "kit.empty", systemImage: "newspaper", message: "kit.emptyHint")
                 }
                 Section("kit.error") {
-                    Label("kit.requestError", systemImage: "exclamationmark.circle").foregroundStyle(.red)
+                    AppStatusView(title: "kit.requestError", systemImage: "exclamationmark.circle", compact: true)
                     AppActionButton(title: "feed.retry", emphasis: .secondary, action: viewModel.showFeedback)
+                }
+                Section("kit.imageUnavailable") {
+                    AppImagePlaceholder(state: .unavailable).frame(height: 160)
                 }
                 Section { Text("kit.statesRule").font(.footnote).foregroundStyle(.secondary) }
             }
