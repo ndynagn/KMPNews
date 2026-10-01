@@ -13,14 +13,20 @@
                         CatalogAuthStepScreen(viewModel: viewModel, step: step, onClose: close)
                     }
             }
-            .onChange(of: viewModel.completed) { _, complete in
-                if complete { onSuccess(); close() }
+            .onChange(of: viewModel.isCompleted) { _, complete in
+                if complete {
+                    onSuccess()
+                    close()
+                }
             }
             .onDisappear { viewModel.close() }
             .presentationDetents([.large])
         }
 
-        private func close() { viewModel.close(); dismiss() }
+        private func close() {
+            viewModel.close()
+            dismiss()
+        }
     }
 
     private struct CatalogAuthStepScreen: View {
@@ -67,12 +73,13 @@
                         if step != .recovery {
                             AppPasswordField(
                                 value: Binding(get: { viewModel.password }, set: viewModel.setPassword),
-                                newPassword: step == .register, accessibilityID: "kit.password")
+                                isNewPassword: step == .register, accessibilityID: "kit.password")
                             if step == .register {
                                 AppPasswordField(
                                     value: Binding(
                                         get: { viewModel.repeatedPassword }, set: viewModel.setRepeatedPassword),
-                                    repeated: true, newPassword: true, accessibilityID: "kit.repeatPassword")
+                                    isRepeatedPassword: true, isNewPassword: true, accessibilityID: "kit.repeatPassword"
+                                )
                             }
                         }
                     }
@@ -86,27 +93,27 @@
                         )
                     }
                 }
-                .disabled(viewModel.busy)
+                .disabled(viewModel.isBusy)
                 Section {
                     AppFormActions {
                         if step != .confirm {
                             AppActionButton(
                                 title: step == .recovery ? "kit.sendLink" : title,
-                                isBusy: viewModel.busy, isEnabled: viewModel.canSubmit, action: viewModel.submit
+                                isBusy: viewModel.isBusy, isEnabled: viewModel.canSubmit, action: viewModel.submit
                             )
                             .accessibilityIdentifier("kit.submit")
-                        } else if viewModel.busy {
+                        } else if viewModel.isBusy {
                             ProgressView("common.loading").frame(maxWidth: .infinity)
                         } else if viewModel.message == "kit.codeError" && viewModel.code.count == 6 {
                             AppActionButton(title: "auth.retry", emphasis: .text, action: viewModel.submit)
                         }
                         if step == .login {
-                            AppActionButton(title: "kit.createAccount", emphasis: .text, isEnabled: !viewModel.busy) {
+                            AppActionButton(title: "kit.createAccount", emphasis: .text, isEnabled: !viewModel.isBusy) {
                                 viewModel.navigate(.register)
                             }.accessibilityIdentifier("kit.register")
                             AppActionButton(
                                 title: "auth.forgot_password", emphasis: .text, textAlignment: .leading,
-                                isEnabled: !viewModel.busy
+                                isEnabled: !viewModel.isBusy
                             ) {
                                 viewModel.navigate(.recovery)
                             }.accessibilityIdentifier("kit.recovery")
@@ -114,7 +121,7 @@
                         if step == .confirm {
                             AppActionButton(
                                 title: resendTitle, emphasis: .text,
-                                isEnabled: !viewModel.busy && viewModel.resendSeconds == 0, action: viewModel.resend
+                                isEnabled: !viewModel.isBusy && viewModel.resendSeconds == 0, action: viewModel.resend
                             )
                             .accessibilityIdentifier("kit.resend")
                         }
@@ -125,7 +132,7 @@
                         ForEach(CatalogAuthViewModel.Outcome.allCases, id: \.self) { outcome in
                             Text(LocalizedStringKey("kit.outcome.\(outcome.rawValue)")).tag(outcome)
                         }
-                    }.disabled(viewModel.busy)
+                    }.disabled(viewModel.isBusy)
                 }
             }
             .listSectionSpacing(AppFormLayout.sectionSpacing)
@@ -136,7 +143,7 @@
                 firstFieldFocused = true
             }
             .onDisappear { firstFieldFocused = false }
-            .onChange(of: viewModel.busy) { _, busy in
+            .onChange(of: viewModel.isBusy) { _, busy in
                 if !busy && step == .confirm && step == viewModel.step { firstFieldFocused = true }
             }
             .navigationTitle(title)

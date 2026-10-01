@@ -86,12 +86,12 @@ private struct AuthStepScreen: View {
                     }
                     if step != .recovery {
                         AppPasswordField(
-                            value: binding(\.password, AuthEvent.password), newPassword: isNewPassword,
+                            value: binding(\.password, AuthEvent.password), isNewPassword: isNewPassword,
                             accessibilityID: "auth.password", isFocused: step == .newPassword ? $passwordFocused : nil)
                         if isNewPassword {
                             AppPasswordField(
-                                value: binding(\.repeatPassword, AuthEvent.repeatPassword), repeated: true,
-                                newPassword: true, accessibilityID: "auth.repeatPassword")
+                                value: binding(\.repeatPassword, AuthEvent.repeatPassword), isRepeatedPassword: true,
+                                isNewPassword: true, accessibilityID: "auth.repeatPassword")
                         }
                     }
                 }

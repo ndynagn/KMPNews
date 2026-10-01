@@ -3,28 +3,29 @@ import SwiftUI
 /// A grouped-form password row whose visibility control does not affect row height.
 struct AppPasswordField: View {
     @Binding var value: String
-    var repeated = false
-    var newPassword = false
+    var isRepeatedPassword = false
+    var isNewPassword = false
     var accessibilityID: String?
     var isFocused: Binding<Bool>?
-    @State private var visible = false
+    @State private var isPasswordVisible = false
 
     var body: some View {
         AppPasswordInput(
-            value: $value, repeated: repeated, newPassword: newPassword, visible: visible,
+            value: $value, isRepeatedPassword: isRepeatedPassword, isNewPassword: isNewPassword,
+            isPasswordVisible: isPasswordVisible,
             accessibilityID: accessibilityID, isFocused: isFocused
         )
         .padding(.trailing, 44)
         .overlay(alignment: .trailing) {
             Button {
-                visible.toggle()
+                isPasswordVisible.toggle()
             } label: {
-                Image(systemName: visible ? "eye.slash" : "eye")
+                Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
                     .font(.system(size: 18))
                     .frame(width: 44, height: 44).contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(visible ? Text("auth.hide") : Text("auth.show"))
+            .accessibilityLabel(isPasswordVisible ? Text("auth.hide") : Text("auth.show"))
         }
     }
 }
@@ -32,15 +33,16 @@ struct AppPasswordField: View {
 /// A stable native input keeps focus, AutoFill and text intact while secure entry changes.
 private struct AppPasswordInput: UIViewRepresentable {
     @Binding var value: String
-    var repeated = false
-    var newPassword = false
-    let visible: Bool
+    var isRepeatedPassword = false
+    var isNewPassword = false
+    let isPasswordVisible: Bool
     var accessibilityID: String?
     var isFocused: Binding<Bool>?
     @Environment(\.isEnabled) private var isEnabled
 
     func makeUIView(context: Context) -> UITextField {
         let field = UITextField()
+
         field.font = .preferredFont(forTextStyle: .body)
         field.textColor = .label
         field.adjustsFontForContentSizeCategory = true
@@ -54,31 +56,38 @@ private struct AppPasswordInput: UIViewRepresentable {
         field.spellCheckingType = .no
         field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         field.addTarget(context.coordinator, action: #selector(Coordinator.changed(_:)), for: .editingChanged)
+
         return field
     }
 
     func updateUIView(_ field: UITextField, context: Context) {
         context.coordinator.parent = self
-        field.placeholder = String(localized: repeated ? "auth.repeat_password" : "auth.password")
+        field.placeholder = String(localized: isRepeatedPassword ? "auth.repeat_password" : "auth.password")
         field.accessibilityLabel = field.placeholder
         field.accessibilityIdentifier = accessibilityID
-        let contentType: UITextContentType = newPassword ? .newPassword : .password
+
+        let contentType: UITextContentType = isNewPassword ? .newPassword : .password
+
         // Preserve the active AutoFill configuration while the user edits either password field.
         if field.textContentType != contentType { field.textContentType = contentType }
         field.isEnabled = isEnabled
-        if field.isSecureTextEntry == visible {
+
+        if field.isSecureTextEntry == isPasswordVisible {
             let wasFirstResponder = field.isFirstResponder
             let selection = field.selectedTextRange
-            field.isSecureTextEntry = !visible
+
+            field.isSecureTextEntry = !isPasswordVisible
             field.text = value
             field.selectedTextRange = selection
             if wasFirstResponder { field.becomeFirstResponder() }
         } else if field.text != value {
             field.text = value
         }
+
         if let isFocused, isFocused.wrappedValue != field.isFirstResponder {
             DispatchQueue.main.async { [weak field, weak coordinator = context.coordinator] in
                 guard let field, let coordinator, field.window != nil else { return }
+
                 if coordinator.parent.isFocused?.wrappedValue == true && field.isEnabled {
                     field.becomeFirstResponder()
                 } else if field.isFirstResponder {
@@ -92,6 +101,7 @@ private struct AppPasswordInput: UIViewRepresentable {
         let width =
             proposal.width.flatMap { $0.isFinite ? max(0, $0) : nil }
             ?? max(0, uiView.intrinsicContentSize.width)
+
         return CGSize(
             width: width,
             height: max(22, uiView.font?.lineHeight ?? 22))
@@ -118,6 +128,7 @@ private struct AppPasswordInput: UIViewRepresentable {
 
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
             textField.resignFirstResponder()
+
             return true
         }
 

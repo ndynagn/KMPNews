@@ -73,7 +73,8 @@
                     Label("home.profile", systemImage: "person")
                 }
                 Section("kit.layout") {
-                    Text("kit.layoutRule"); Text("kit.glassRule")
+                    Text("kit.layoutRule")
+                    Text("kit.glassRule")
                 }
             }
         }
@@ -135,7 +136,7 @@
                 Section {
                     Toggle(
                         "kit.imageUnavailable",
-                        isOn: Binding(get: { viewModel.imageUnavailable }, set: viewModel.setImageUnavailable))
+                        isOn: Binding(get: { viewModel.isImageUnavailable }, set: viewModel.setImageUnavailable))
                 }
                 Section("kit.card") {
                     news(compact: false)
@@ -153,7 +154,7 @@
                     title: String(localized: "kit.newsTitle"), metadata: String(localized: "kit.newsSource"),
                     compact: compact
                 ) {
-                    AppImagePlaceholder(state: viewModel.imageUnavailable ? .unavailable : .sample)
+                    AppImagePlaceholder(state: viewModel.isImageUnavailable ? .unavailable : .sample)
                 }
             }
             .buttonStyle(.plain)
@@ -180,7 +181,7 @@
             List {
                 Section {
                     Text("kit.demo").font(.caption).foregroundStyle(.secondary)
-                    if viewModel.authenticated {
+                    if viewModel.isAuthenticated {
                         Label("kit.signedIn", systemImage: "person.crop.circle.badge.checkmark")
                         AppActionButton(title: "auth.logout", emphasis: .secondary, action: viewModel.resetProfile)
                     } else {
