@@ -3,6 +3,9 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
+    #if DEBUG
+        @State private var showsComponentCatalog = false
+    #endif
     @State private var selected = 0
     @State private var feedViewModel: FeedViewModel
     @State private var scrollID: String?
@@ -31,6 +34,15 @@ struct ContentView: View {
             .tabItem { Label("home.favorites", systemImage: "star") }.tag(1)
             NavigationStack {
                 Text("home.placeholder").navigationTitle("home.profile").navigationBarTitleDisplayMode(.large)
+                    #if DEBUG
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("kit.title") { showsComponentCatalog = true }
+                                .accessibilityIdentifier("kit.entry")
+                            }
+                        }
+                        .sheet(isPresented: $showsComponentCatalog) { ComponentCatalogScreen() }
+                    #endif
             }
             .tabItem { Label("home.profile", systemImage: "person") }.tag(2)
         }
