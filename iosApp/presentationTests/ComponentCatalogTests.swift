@@ -4,10 +4,12 @@ import Foundation
 private final class RequestGate {
     var calls = 0
     var continuation: CheckedContinuation<Void, Never>?
+
     func pause(_: Duration) async {
         calls += 1
         await withCheckedContinuation { continuation = $0 }
     }
+
     func finish() { continuation?.resume(); continuation = nil }
 }
 
@@ -31,9 +33,11 @@ struct ComponentCatalogTests {
         precondition(model.resendSeconds == 60)
         model.resend()
         precondition(gate.calls == 1)
+        model.setOutcome(.error)
+        model.setCode("01234")
+        precondition(!model.busy)
         model.setCode("012345")
         precondition(model.code == "012345")
-        model.setOutcome(.error)
         model.submit()
         await wait { gate.calls == 2 }
         gate.finish()

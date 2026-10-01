@@ -27,7 +27,7 @@
         let viewModel: CatalogAuthViewModel
         let step: CatalogAuthViewModel.Step
         let onClose: () -> Void
-        @FocusState private var emailFocused: Bool
+        @FocusState private var firstFieldFocused: Bool
 
         private var title: LocalizedStringKey {
             switch step {
@@ -36,6 +36,12 @@
             case .confirm: "auth.confirm"
             case .recovery: "kit.recovery"
             }
+        }
+
+        private var resendTitle: LocalizedStringKey {
+            viewModel.resendSeconds > 0
+                ? LocalizedStringKey(String(format: String(localized: "auth.resend_wait"), viewModel.resendSeconds))
+                : "auth.resend"
         }
 
         var body: some View {
@@ -50,64 +56,70 @@
                         Text(viewModel.email).foregroundStyle(.secondary)
                         TextField("auth.code", text: Binding(get: { viewModel.code }, set: viewModel.setCode))
                             .keyboardType(.numberPad).textContentType(.oneTimeCode)
+                            .focused($firstFieldFocused)
                             .accessibilityIdentifier("kit.code")
                     } else {
                         TextField("auth.email", text: Binding(get: { viewModel.email }, set: viewModel.setEmail))
                             .textContentType(step == .register ? .emailAddress : .username)
                             .keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
-                            .focused($emailFocused).submitLabel(.next).onSubmit { emailFocused = false }
+                            .focused($firstFieldFocused).submitLabel(.next).onSubmit { firstFieldFocused = false }
                             .accessibilityIdentifier("kit.email")
                         if step != .recovery {
                             AppPasswordField(
                                 value: Binding(get: { viewModel.password }, set: viewModel.setPassword),
-                                newPassword: step == .register)
+                                newPassword: step == .register, accessibilityID: "kit.password")
                             if step == .register {
                                 AppPasswordField(
                                     value: Binding(
                                         get: { viewModel.repeatedPassword }, set: viewModel.setRepeatedPassword),
-                                    repeated: true, newPassword: true)
+                                    repeated: true, newPassword: true, accessibilityID: "kit.repeatPassword")
                             }
                         }
                     }
                 } footer: {
-                    Text(step == .confirm ? "kit.codeRule" : step == .recovery ? "kit.recoveryRule" : "kit.inputRule")
+                    if let message = viewModel.message {
+                        AppFormMessage(title: LocalizedStringKey(message), isError: message.hasSuffix("Error"))
+                            .accessibilityIdentifier("kit.message")
+                    } else {
+                        Text(
+                            step == .confirm ? "kit.codeRule" : step == .recovery ? "kit.recoveryRule" : "kit.inputRule"
+                        )
+                    }
                 }
                 .disabled(viewModel.busy)
                 Section {
-                    if let message = viewModel.message {
-                        Label(
-                            LocalizedStringKey(message),
-                            systemImage: message.hasSuffix("Error") ? "exclamationmark.circle" : "info.circle"
-                        )
-                        .foregroundStyle(message.hasSuffix("Error") ? Color.red : Color.secondary)
-                        .accessibilityIdentifier("kit.message")
-                    }
-                    AppActionButton(
-                        title: step == .recovery ? "kit.sendLink" : title,
-                        isBusy: viewModel.busy, isEnabled: viewModel.canSubmit, action: viewModel.submit
-                    )
-                    .accessibilityIdentifier("kit.submit")
-                    if step == .login {
-                        AppActionButton(title: "kit.createAccount", emphasis: .text, isEnabled: !viewModel.busy) {
-                            viewModel.navigate(.register)
-                        }.accessibilityIdentifier("kit.register")
-                        AppActionButton(title: "auth.forgot_password", emphasis: .text, isEnabled: !viewModel.busy) {
-                            viewModel.navigate(.recovery)
-                        }.accessibilityIdentifier("kit.recovery")
-                    }
-                    if step == .confirm {
-                        AppActionButton(
-                            title: "auth.resend", emphasis: .text,
-                            isEnabled: !viewModel.busy && viewModel.resendSeconds == 0, action: viewModel.resend
-                        )
-                        .accessibilityIdentifier("kit.resend")
-                        if viewModel.resendSeconds > 0 {
-                            Text(String(format: String(localized: "auth.resend_wait"), viewModel.resendSeconds))
-                                .font(.footnote).foregroundStyle(.secondary)
+                    AppFormActions {
+                        if step != .confirm {
+                            AppActionButton(
+                                title: step == .recovery ? "kit.sendLink" : title,
+                                isBusy: viewModel.busy, isEnabled: viewModel.canSubmit, action: viewModel.submit
+                            )
+                            .accessibilityIdentifier("kit.submit")
+                        } else if viewModel.busy {
+                            ProgressView("common.loading").frame(maxWidth: .infinity)
+                        } else if viewModel.message == "kit.codeError" && viewModel.code.count == 6 {
+                            AppActionButton(title: "auth.retry", emphasis: .text, action: viewModel.submit)
+                        }
+                        if step == .login {
+                            AppActionButton(title: "kit.createAccount", emphasis: .text, isEnabled: !viewModel.busy) {
+                                viewModel.navigate(.register)
+                            }.accessibilityIdentifier("kit.register")
+                            AppActionButton(
+                                title: "auth.forgot_password", emphasis: .text, textAlignment: .leading,
+                                isEnabled: !viewModel.busy
+                            ) {
+                                viewModel.navigate(.recovery)
+                            }.accessibilityIdentifier("kit.recovery")
+                        }
+                        if step == .confirm {
+                            AppActionButton(
+                                title: resendTitle, emphasis: .text,
+                                isEnabled: !viewModel.busy && viewModel.resendSeconds == 0, action: viewModel.resend
+                            )
+                            .accessibilityIdentifier("kit.resend")
                         }
                     }
                 }
-                .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 Section("kit.simulation") {
                     Picker("kit.result", selection: Binding(get: { viewModel.outcome }, set: viewModel.setOutcome)) {
                         ForEach(CatalogAuthViewModel.Outcome.allCases, id: \.self) { outcome in
@@ -116,7 +128,17 @@
                     }.disabled(viewModel.busy)
                 }
             }
+            .listSectionSpacing(AppFormLayout.sectionSpacing)
             .scrollDismissesKeyboard(.interactively)
+            .task {
+                do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
+                guard step == viewModel.step else { return }
+                firstFieldFocused = true
+            }
+            .onDisappear { firstFieldFocused = false }
+            .onChange(of: viewModel.busy) { _, busy in
+                if !busy && step == .confirm && step == viewModel.step { firstFieldFocused = true }
+            }
             .navigationTitle(title)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -127,10 +149,7 @@
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("kit.hideKeyboard") {
-                        UIApplication.shared.sendAction(
-                            #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    }
+                    AppKeyboardDismissButton()
                 }
             }
         }

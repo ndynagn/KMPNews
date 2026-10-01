@@ -22,6 +22,7 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
+import com.ndynagn.kmp.news.feature.auth.FakeAuthRepository
 import com.ndynagn.kmp.news.feature.feed.domain.Article
 import com.ndynagn.kmp.news.feature.feed.domain.FeedClock
 import com.ndynagn.kmp.news.feature.feed.domain.FeedFailure
@@ -46,7 +47,18 @@ class FeedScreenTest {
         val repository = FakeScreenRepository()
         val restoration = StateRestorationTester(compose)
         restoration.setContent {
-            MobileApp(repository, RefreshFeedIfNeeded(repository, FeedClock { 10 }), true, { "30.09.2026" })
+            MobileApp(
+                repository,
+                RefreshFeedIfNeeded(
+                    repository,
+                    FeedClock {
+                        10
+                    },
+                ),
+                true,
+                { "30.09.2026" },
+                FakeAuthRepository(),
+            )
         }
         compose.onNodeWithText("News 0").assertIsDisplayed()
         compose.waitForIdle()
@@ -55,7 +67,7 @@ class FeedScreenTest {
         compose.onNodeWithText("Избранное").performClick()
         compose.onNodeWithText("Раздел в разработке").assertIsDisplayed()
         compose.onNodeWithText("Профиль").performClick()
-        compose.onNodeWithText("Раздел в разработке").assertIsDisplayed()
+        compose.onNodeWithText("Добро пожаловать").assertIsDisplayed()
         compose.onNodeWithText("Новости").performClick()
         compose.onNodeWithText("Summary 0").assertDoesNotExist()
         compose.onNodeWithTag("feed.list").performScrollToIndex(5)
@@ -69,7 +81,18 @@ class FeedScreenTest {
     fun paginationFailureRequiresRetryAndPreservesCards() {
         val repository = FakeScreenRepository(hasMore = true)
         compose.setContent {
-            MobileApp(repository, RefreshFeedIfNeeded(repository, FeedClock { 10 }), true, { "30.09.2026" })
+            MobileApp(
+                repository,
+                RefreshFeedIfNeeded(
+                    repository,
+                    FeedClock {
+                        10
+                    },
+                ),
+                true,
+                { "30.09.2026" },
+                FakeAuthRepository(),
+            )
         }
         compose.onNodeWithTag("feed.list").performScrollToIndex(9)
         compose.waitUntil(5_000) { repository.appends == 1 }
@@ -96,7 +119,18 @@ class FeedScreenTest {
                 LocalDensity provides Density(LocalDensity.current.density, 2f),
             ) {
                 Box(Modifier.width(320.dp)) {
-                    MobileApp(repository, RefreshFeedIfNeeded(repository, FeedClock { 10 }), true, { "30.09.2026" })
+                    MobileApp(
+                        repository,
+                        RefreshFeedIfNeeded(
+                            repository,
+                            FeedClock {
+                                10
+                            },
+                        ),
+                        true,
+                        { "30.09.2026" },
+                        FakeAuthRepository(),
+                    )
                 }
             }
         }
@@ -111,7 +145,18 @@ class FeedScreenTest {
     fun pullToRefreshRequestsPageOne() {
         val repository = FakeScreenRepository()
         compose.setContent {
-            MobileApp(repository, RefreshFeedIfNeeded(repository, FeedClock { 10 }), true, { "30.09.2026" })
+            MobileApp(
+                repository,
+                RefreshFeedIfNeeded(
+                    repository,
+                    FeedClock {
+                        10
+                    },
+                ),
+                true,
+                { "30.09.2026" },
+                FakeAuthRepository(),
+            )
         }
         compose.onNodeWithText("News 0").assertIsDisplayed()
         compose.onNodeWithTag("feed.list").performTouchInput { swipeDown() }

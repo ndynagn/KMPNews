@@ -5,6 +5,7 @@ struct AppActionButton: View {
     enum Emphasis { case primary, secondary, text, destructive }
     let title: LocalizedStringKey
     var emphasis: Emphasis = .primary
+    var textAlignment: TextAlignment = .center
     var isBusy = false
     var isEnabled = true
     let action: () -> Void
@@ -34,7 +35,10 @@ struct AppActionButton: View {
 
     private var button: some View {
         Button(role: emphasis == .destructive ? .destructive : nil, action: action) {
-            AppButtonLabel(title: title, isBusy: isBusy)
+            AppButtonLabel(title: title, isBusy: isBusy, textAlignment: textAlignment)
+                .padding(.vertical, emphasis == .text ? 8 : 0)
+                .frame(minHeight: emphasis == .text ? 44 : nil)
+                .contentShape(Rectangle())
         }
     }
 }

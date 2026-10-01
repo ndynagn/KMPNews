@@ -5,21 +5,27 @@ struct AppPasswordField: View {
     @Binding var value: String
     var repeated = false
     var newPassword = false
+    var accessibilityID: String?
+    var isFocused: Binding<Bool>?
     @State private var visible = false
+
     var body: some View {
-        AppPasswordInput(value: $value, repeated: repeated, newPassword: newPassword, visible: visible)
-            .padding(.trailing, 44)
-            .overlay(alignment: .trailing) {
-                Button {
-                    visible.toggle()
-                } label: {
-                    Image(systemName: visible ? "eye.slash" : "eye")
-                        .font(.system(size: 18))
-                        .frame(width: 44, height: 44).contentShape(Rectangle())
-                }
-                .buttonStyle(.borderless)
-                .accessibilityLabel(visible ? Text("auth.hide") : Text("auth.show"))
+        AppPasswordInput(
+            value: $value, repeated: repeated, newPassword: newPassword, visible: visible,
+            accessibilityID: accessibilityID, isFocused: isFocused
+        )
+        .padding(.trailing, 44)
+        .overlay(alignment: .trailing) {
+            Button {
+                visible.toggle()
+            } label: {
+                Image(systemName: visible ? "eye.slash" : "eye")
+                    .font(.system(size: 18))
+                    .frame(width: 44, height: 44).contentShape(Rectangle())
             }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(visible ? Text("auth.hide") : Text("auth.show"))
+        }
     }
 }
 
@@ -29,6 +35,8 @@ private struct AppPasswordInput: UIViewRepresentable {
     var repeated = false
     var newPassword = false
     let visible: Bool
+    var accessibilityID: String?
+    var isFocused: Binding<Bool>?
     @Environment(\.isEnabled) private var isEnabled
 
     func makeUIView(context: Context) -> UITextField {
@@ -39,15 +47,8 @@ private struct AppPasswordInput: UIViewRepresentable {
         field.keyboardType = .asciiCapable
         field.returnKeyType = .done
         field.delegate = context.coordinator
-        let toolbar = UIToolbar()
-        toolbar.items = [
-            UIBarButtonItem(systemItem: .flexibleSpace),
-            UIBarButtonItem(
-                title: String(localized: "common.hideKeyboard"), style: .plain,
-                target: context.coordinator, action: #selector(Coordinator.dismissKeyboard)),
-        ]
-        toolbar.sizeToFit()
-        field.inputAccessoryView = toolbar
+        field.inputAccessoryView = AppKeyboardAccessory.makeToolbar(
+            target: context.coordinator, action: #selector(Coordinator.dismissKeyboard))
         field.autocorrectionType = .no
         field.autocapitalizationType = .none
         field.spellCheckingType = .no
@@ -60,8 +61,10 @@ private struct AppPasswordInput: UIViewRepresentable {
         context.coordinator.parent = self
         field.placeholder = String(localized: repeated ? "auth.repeat_password" : "auth.password")
         field.accessibilityLabel = field.placeholder
-        field.accessibilityIdentifier = repeated ? "kit.repeatPassword" : "kit.password"
-        field.textContentType = newPassword ? .newPassword : .password
+        field.accessibilityIdentifier = accessibilityID
+        let contentType: UITextContentType = newPassword ? .newPassword : .password
+        // Preserve the active AutoFill configuration while the user edits either password field.
+        if field.textContentType != contentType { field.textContentType = contentType }
         field.isEnabled = isEnabled
         if field.isSecureTextEntry == visible {
             let wasFirstResponder = field.isFirstResponder
@@ -72,6 +75,16 @@ private struct AppPasswordInput: UIViewRepresentable {
             if wasFirstResponder { field.becomeFirstResponder() }
         } else if field.text != value {
             field.text = value
+        }
+        if let isFocused, isFocused.wrappedValue != field.isFirstResponder {
+            DispatchQueue.main.async { [weak field, weak coordinator = context.coordinator] in
+                guard let field, let coordinator, field.window != nil else { return }
+                if coordinator.parent.isFocused?.wrappedValue == true && field.isEnabled {
+                    field.becomeFirstResponder()
+                } else if field.isFirstResponder {
+                    field.resignFirstResponder()
+                }
+            }
         }
     }
 
@@ -88,10 +101,19 @@ private struct AppPasswordInput: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextFieldDelegate {
         var parent: AppPasswordInput
+
         init(parent: AppPasswordInput) { self.parent = parent }
 
         @objc func dismissKeyboard() {
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            AppKeyboardAccessory.dismiss()
+        }
+
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            if parent.isFocused?.wrappedValue == false { parent.isFocused?.wrappedValue = true }
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            if parent.isFocused?.wrappedValue == true { parent.isFocused?.wrappedValue = false }
         }
 
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {

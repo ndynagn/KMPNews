@@ -1578,6 +1578,360 @@
           }
         }
       }
+    },
+    "profile.welcome": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добро пожаловать"
+          }
+        }
+      }
+    },
+    "profile.guest_hint": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войдите в аккаунт, чтобы получить доступ ко всем возможностям приложения"
+          }
+        }
+      }
+    },
+    "auth.register": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зарегистрироваться"
+          }
+        }
+      }
+    },
+    "auth.back": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Назад"
+          }
+        }
+      }
+    },
+    "auth.code_hint": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите шестизначный код для %@. Если письмо ещё не запрашивали, нажмите «Отправить код повторно»."
+          }
+        }
+      }
+    },
+    "auth.password_hint": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пароль должен содержать минимум 8 символов"
+          }
+        }
+      }
+    },
+    "auth.password_required": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите пароль"
+          }
+        }
+      }
+    },
+    "auth.invalid_email": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите корректный email"
+          }
+        }
+      }
+    },
+    "auth.password_match": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пароли не совпадают"
+          }
+        }
+      }
+    },
+    "auth.invalid_code": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Код неверен или истёк. Введите шестизначный код или запросите новый."
+          }
+        }
+      }
+    },
+    "auth.invalid_credentials": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Неверный email или пароль"
+          }
+        }
+      }
+    },
+    "auth.unconfirmed": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подтвердите email, чтобы войти"
+          }
+        }
+      }
+    },
+    "auth.rate_limited": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Слишком много запросов. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "auth.network": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет связи с сервером. Проверьте подключение и попробуйте снова."
+          }
+        }
+      }
+    },
+    "auth.service": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервис временно недоступен. Попробуйте снова."
+          }
+        }
+      }
+    },
+    "auth.storage": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать или сохранить сессию. Попробуйте снова."
+          }
+        }
+      }
+    },
+    "auth.not_configured": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Авторизация пока недоступна: отсутствует конфигурация приложения."
+          }
+        }
+      }
+    },
+    "auth.session_expired": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сессия завершена. Войдите снова."
+          }
+        }
+      }
+    },
+    "auth.retry": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить"
+          }
+        }
+      }
+    },
+    "auth.logout_warning": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы вышли на этом устройстве. Завершение сессии на сервере не подтверждено."
+          }
+        }
+      }
+    },
+    "auth.recovery_unavailable": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановление пароля скоро появится."
+          }
+        }
+      }
+    },
+    "auth.recovery_title": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановление пароля"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset password"
+          }
+        }
+      }
+    },
+    "auth.recovery_confirm": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Код восстановления"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovery code"
+          }
+        }
+      }
+    },
+    "auth.new_password": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый пароль"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New password"
+          }
+        }
+      }
+    },
+    "auth.send_code": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить код"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send code"
+          }
+        }
+      }
+    },
+    "auth.save_password": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить пароль"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save password"
+          }
+        }
+      }
+    },
+    "auth.recovery_hint": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите email аккаунта. Мы отправим код для восстановления пароля."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter your account email to request a password recovery code."
+          }
+        }
+      }
+    },
+    "auth.recovery_sent": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если аккаунт с адресом %@ существует, мы отправили код восстановления."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If an account exists for %@, we sent a recovery code."
+          }
+        }
+      }
+    },
+    "auth.reset_storage": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пароль изменён, но сохранить сессию не удалось. Войдите с новым паролем."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your password was changed, but the session could not be saved. Sign in with your new password."
+          }
+        }
+      }
+    },
+    "auth.verify_code": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подтвердить код"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verify code"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

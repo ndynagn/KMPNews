@@ -41,7 +41,7 @@ struct FeedScreen: View {
             if !state.status.isConfigured { Text("feed.missingKey") }
             if state.status.storageFailed || state.status.failedOperation != nil {
                 Text(state.status.storageFailed ? "feed.storageError" : "feed.updateError")
-                Button("feed.retry") { viewModel.onEvent(.retry) }.accessibilityIdentifier("feed.retryButton")
+                AppButton(title: "feed.retry") { viewModel.onEvent(.retry) }.accessibilityIdentifier("feed.retryButton")
             } else if state.status.operation == nil {
                 if case .empty = state {
                     Text("feed.empty")

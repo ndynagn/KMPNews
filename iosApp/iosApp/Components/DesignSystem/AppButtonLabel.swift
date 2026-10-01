@@ -4,13 +4,22 @@ import SwiftUI
 struct AppButtonLabel: View {
     let title: LocalizedStringKey
     let isBusy: Bool
+    var textAlignment: TextAlignment = .center
+
+    private var contentAlignment: Alignment {
+        switch textAlignment {
+        case .leading: .leading
+        case .trailing: .trailing
+        case .center: .center
+        }
+    }
 
     var body: some View {
         Text(title)
-            .multilineTextAlignment(.center)
+            .multilineTextAlignment(textAlignment)
             .opacity(isBusy ? 0 : 1)
-            .frame(maxWidth: .infinity)
-            .overlay {
+            .frame(maxWidth: .infinity, alignment: contentAlignment)
+            .overlay(alignment: contentAlignment) {
                 if isBusy {
                     AppLoadingIndicator()
                         .accessibilityHidden(true)

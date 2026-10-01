@@ -44,11 +44,19 @@
         }
 
         func setEmail(_ value: String) { email = value; message = nil }
+
         func setPassword(_ value: String) { password = value; message = nil }
         func setRepeatedPassword(_ value: String) { repeatedPassword = value; message = nil }
+
         func setCode(_ value: String) {
-            code = String(value.filter { $0.isASCII && $0.isNumber }.prefix(6)); message = nil
+            guard !busy, !completed else { return }
+            let next = String(value.filter { $0.isASCII && $0.isNumber }.prefix(6))
+            guard code != next else { return }
+            code = next
+            message = nil
+            if step == .confirm && code.count == 6 { submit() }
         }
+
         func setOutcome(_ value: Outcome) { outcome = value }
 
         func navigate(_ target: Step) {
