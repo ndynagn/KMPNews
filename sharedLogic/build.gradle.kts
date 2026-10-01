@@ -46,6 +46,8 @@ kotlin {
     }
 
     sourceSets {
+        commonTest { kotlin.srcDir("src/persistenceTest/kotlin") }
+        getByName("androidDeviceTest").kotlin.srcDir("src/persistenceTest/kotlin")
         if (feedInteropTests) {
             appleMain {
                 kotlin.srcDir("src/appleInteropTest/kotlin")
