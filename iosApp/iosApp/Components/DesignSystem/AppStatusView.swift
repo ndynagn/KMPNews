@@ -5,10 +5,10 @@ struct AppStatusView: View {
     let title: LocalizedStringKey
     let systemImage: String
     var message: LocalizedStringKey?
-    var compact = false
+    var isCompact = false
 
     var body: some View {
-        if compact {
+        if isCompact {
             VStack(spacing: 8) {
                 Label(title, systemImage: systemImage)
                     .font(.subheadline)

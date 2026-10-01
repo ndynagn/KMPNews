@@ -41,13 +41,13 @@ struct FeedScreen: View {
             if !state.status.isConfigured {
                 AppStatusView(
                     title: "feed.unavailableTitle", systemImage: "network.slash",
-                    message: "feed.missingKey", compact: state.snapshot != nil)
+                    message: "feed.missingKey", isCompact: state.snapshot != nil)
             }
             if state.status.storageFailed || state.status.failedOperation != nil {
                 AppStatusView(
                     title: "feed.unavailableTitle", systemImage: "exclamationmark.circle",
                     message: state.status.storageFailed ? "feed.storageError" : nil,
-                    compact: state.snapshot != nil)
+                    isCompact: state.snapshot != nil)
                 AppActionButton(title: "feed.retry", isEnabled: state.status.operation == nil) {
                     viewModel.onEvent(.retry)
                 }

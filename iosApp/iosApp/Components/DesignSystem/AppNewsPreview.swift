@@ -4,13 +4,13 @@ import SwiftUI
 struct AppNewsPreview<Thumbnail: View>: View {
     let title: String
     var metadata: String?
-    var compact = false
+    var isCompact = false
     var showsImage = true
     @ViewBuilder var thumbnail: Thumbnail
 
     var body: some View {
         Group {
-            if compact {
+            if isCompact {
                 HStack(alignment: .top, spacing: 12) {
                     if showsImage {
                         thumbnail.frame(width: 64, height: 64).clipShape(.rect(cornerRadius: 8))

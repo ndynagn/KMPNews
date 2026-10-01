@@ -139,20 +139,20 @@
                         isOn: Binding(get: { viewModel.isImageUnavailable }, set: viewModel.setImageUnavailable))
                 }
                 Section("kit.card") {
-                    news(compact: false)
+                    news(isCompact: false)
                 }
                 Section("kit.row") {
-                    news(compact: true)
+                    news(isCompact: true)
                 }
                 Section { Text("kit.contentRule").font(.footnote).foregroundStyle(.secondary) }
             }
         }
 
-        private func news(compact: Bool) -> some View {
+        private func news(isCompact: Bool) -> some View {
             Button(action: viewModel.showFeedback) {
                 AppNewsPreview(
                     title: String(localized: "kit.newsTitle"), metadata: String(localized: "kit.newsSource"),
-                    compact: compact
+                    isCompact: isCompact
                 ) {
                     AppImagePlaceholder(state: viewModel.isImageUnavailable ? .unavailable : .sample)
                 }
@@ -167,7 +167,7 @@
                     AppStatusView(title: "kit.empty", systemImage: "newspaper", message: "kit.emptyHint")
                 }
                 Section("kit.error") {
-                    AppStatusView(title: "kit.requestError", systemImage: "exclamationmark.circle", compact: true)
+                    AppStatusView(title: "kit.requestError", systemImage: "exclamationmark.circle", isCompact: true)
                     AppActionButton(title: "feed.retry", emphasis: .secondary, action: viewModel.showFeedback)
                 }
                 Section("kit.imageUnavailable") {
