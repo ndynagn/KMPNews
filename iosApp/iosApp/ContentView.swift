@@ -4,25 +4,54 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selected = 0
-    @State private var feedViewModel: FeedViewModel
+    let homeViewModel: HomeViewModel
+    private let authClient: any AuthClient
+    @State private var profileViewModel: ProfileViewModel
+    @State private var authStep: AuthStep?
     @State private var scrollID: String?
+    #if DEBUG
+        @State private var showsComponentCatalog = false
+    #endif
 
-    init(dependencies: FeedDependencies, isConfigured: Bool) {
-        _feedViewModel = State(
-            initialValue: FeedViewModel(
-                client: SharedFeedClient(
-                    newsRepository: dependencies.newsRepository,
-                    refreshFeedIfNeeded: dependencies.refreshFeedIfNeeded
-                ), isConfigured: isConfigured
-            ))
+    init(homeViewModel: HomeViewModel) {
+        self.homeViewModel = homeViewModel
+        let client: any AuthClient
+        #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--auth-ui-fixture") {
+                client = AuthUITestClient()
+            } else {
+                client = SharedAuthClient(authRepository: homeViewModel.authDependencies.authRepository)
+            }
+        #else
+            client = SharedAuthClient(authRepository: homeViewModel.authDependencies.authRepository)
+        #endif
+        authClient = client
+        _profileViewModel = State(initialValue: ProfileViewModel(client: client))
     }
 
     var body: some View {
         TabView(selection: $selected) {
             NavigationStack {
-                FeedScreen(viewModel: feedViewModel, scrollID: $scrollID)
-                    .navigationTitle("home.news")
-                    .navigationBarTitleDisplayMode(.large)
+                Group {
+                    if let feedViewModel = homeViewModel.feedViewModel {
+                        FeedScreen(viewModel: feedViewModel, scrollID: $scrollID)
+                    } else if homeViewModel.storageFailed {
+                        VStack {
+                            AppStatusView(
+                                title: "feed.unavailableTitle", systemImage: "exclamationmark.circle",
+                                message: "feed.storageError")
+                            AppActionButton(title: "feed.retry") {
+                                homeViewModel.prepare()
+                                updateActivity()
+                            }
+                        }
+                        .padding(16)
+                    } else {
+                        ProgressView("feed.loading")
+                    }
+                }
+                .navigationTitle("home.news")
+                .navigationBarTitleDisplayMode(.large)
             }
             .tabItem { Label("home.news", systemImage: "newspaper") }.tag(0)
             NavigationStack {
@@ -30,17 +59,51 @@ struct ContentView: View {
             }
             .tabItem { Label("home.favorites", systemImage: "star") }.tag(1)
             NavigationStack {
-                Text("home.placeholder").navigationTitle("home.profile").navigationBarTitleDisplayMode(.large)
+                ProfileScreen(
+                    state: profileViewModel.state, notice: profileViewModel.notice,
+                    isBusy: profileViewModel.isBusy,
+                    onLogin: { authStep = .signIn }, onRegister: { authStep = .register },
+                    onRetry: profileViewModel.restore, onLogout: profileViewModel.signOut
+                )
+                .navigationTitle("home.profile").navigationBarTitleDisplayMode(.large)
+                #if DEBUG
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("kit.title") { showsComponentCatalog = true }
+                            .accessibilityIdentifier("kit.entry")
+                        }
+                    }
+                    .sheet(isPresented: $showsComponentCatalog) {
+                        ComponentCatalogScreen()
+                    }
+                #endif
             }
             .tabItem { Label("home.profile", systemImage: "person") }.tag(2)
         }
-        .onAppear { updateActivity() }
+        .sheet(item: $authStep) { step in
+            AuthScreen(client: authClient, step: step) { authStep = nil }
+                .presentationSizing(.page)
+                .presentationDetents([.large])
+        }
+        .task { await profileViewModel.observe() }
+        .onAppear {
+            homeViewModel.prepare()
+            profileViewModel.restore()
+            updateActivity()
+        }
         .onChange(of: selected) { _, _ in updateActivity() }
-        .onChange(of: scenePhase) { _, _ in updateActivity() }
-        .onDisappear { feedViewModel.deactivate() }
+        .onChange(of: scenePhase) { _, phase in
+            updateActivity()
+            if phase == .active { profileViewModel.restore() }
+        }
+        .onDisappear { homeViewModel.feedViewModel?.deactivate() }
     }
 
     private func updateActivity() {
-        if selected == 0 && scenePhase == .active { feedViewModel.activate() } else { feedViewModel.deactivate() }
+        if selected == 0 && scenePhase == .active {
+            homeViewModel.feedViewModel?.activate()
+        } else {
+            homeViewModel.feedViewModel?.deactivate()
+        }
     }
 }
