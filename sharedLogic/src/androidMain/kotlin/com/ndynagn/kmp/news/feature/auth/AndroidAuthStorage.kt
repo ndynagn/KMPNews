@@ -26,12 +26,19 @@ class AndroidAuthStorage(context: Context) : AuthSessionStorage {
         } else {
             val buffer = ByteBuffer.wrap(file.readFully())
             val ivSize = buffer.int
+
             require(ivSize == 12)
+
             val iv = ByteArray(ivSize)
+
             buffer.get(iv)
+
             val ciphertext = ByteArray(buffer.remaining())
+
             buffer.get(ciphertext)
+
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+
             cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
             AuthStorageRead(cipher.doFinal(ciphertext).toString(Charsets.UTF_8), false)
         }
@@ -67,7 +74,9 @@ class AndroidAuthStorage(context: Context) : AuthSessionStorage {
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore")
         store.load(null)
+
         (store.getKey(alias, null) as? SecretKey)?.let { return it }
+
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
         generator.init(
             KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
@@ -76,6 +85,7 @@ class AndroidAuthStorage(context: Context) : AuthSessionStorage {
                 .setKeySize(256)
                 .build(),
         )
+
         return generator.generateKey()
     }
 }

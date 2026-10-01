@@ -23,7 +23,9 @@ internal class AuthViewModel(
 
     fun onEvent(event: AuthEvent) {
         val current = state.value
+
         if (current.isBusy) return
+
         mutableState.value = when (event) {
             is AuthEvent.EmailChanged -> current.copy(email = event.value, fieldError = null, failure = null)
 
@@ -45,6 +47,7 @@ internal class AuthViewModel(
 
             AuthEvent.Submit, AuthEvent.Resend -> current
         }
+
         if (event == AuthEvent.Submit || event == AuthEvent.Resend) submit(event == AuthEvent.Resend)
     }
 
@@ -54,7 +57,9 @@ internal class AuthViewModel(
 
     private fun submit(resend: Boolean) {
         val current = state.value
+
         if (resend && current.resendSeconds > 0) return
+
         val email = current.email.trim()
         val validator = AuthInputValidator()
         val error = when {
@@ -63,10 +68,12 @@ internal class AuthViewModel(
             current.step == AuthStep.REGISTER -> validator.registration(email, current.password, current.repeatPassword)
             else -> validator.confirmation(email, current.code)
         }
+
         if (error != null) {
             mutableState.value = current.copy(fieldError = error)
             return
         }
+
         mutableState.value = current.copy(isBusy = true, failure = null, fieldError = null)
         viewModelScope.launch {
             val result = when {
@@ -75,6 +82,7 @@ internal class AuthViewModel(
                 current.step == AuthStep.REGISTER -> authRepository.register(email, current.password)
                 else -> authRepository.confirm(email, current.code)
             }
+
             if (result.failure != null) {
                 mutableState.value = state.value.copy(isBusy = false, failure = result.failure)
             } else if (resend || current.step == AuthStep.REGISTER) {
@@ -88,11 +96,15 @@ internal class AuthViewModel(
 
     private fun startCountdown() {
         countdown?.cancel()
+
         val deadline = nowMillis() + 60_000
+
         countdown = viewModelScope.launch {
             while (state.value.resendSeconds > 0) {
                 delay(1_000)
+
                 val remaining = ((deadline - nowMillis() + 999) / 1_000).coerceIn(0, 60).toInt()
+
                 mutableState.value = state.value.copy(resendSeconds = remaining)
             }
         }

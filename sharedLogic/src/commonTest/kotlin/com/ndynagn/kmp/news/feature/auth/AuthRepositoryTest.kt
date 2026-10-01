@@ -32,6 +32,7 @@ class AuthRepositoryTest {
         val remote = FakeAuthRemote()
         val storage = FakeAuthStorage()
         val repository = PersistentAuthRepository(remote, storage, AuthClock { 100 })
+
         repository.restore()
 
         assertNull(repository.register("reader@example.test", " spaced password ").failure)
@@ -58,8 +59,11 @@ class AuthRepositoryTest {
 
         assertEquals(1, remote.refreshes)
         assertIs<AuthSession.Authenticated>(repository.session.value)
+
         val restarted = PersistentAuthRepository(remote, storage, AuthClock { 110 })
+
         restarted.restore()
+
         assertIs<AuthSession.Authenticated>(restarted.session.value)
         assertEquals(1, remote.refreshes)
     }
@@ -74,7 +78,9 @@ class AuthRepositoryTest {
         assertEquals(AuthFailure.NETWORK, repository.restore().failure)
         assertEquals(original, storage.value)
         assertIs<AuthSession.Unavailable>(repository.session.value)
+
         remote.refreshFailure = null
+
         assertNull(repository.restore().failure)
         assertIs<AuthSession.Authenticated>(repository.session.value)
     }

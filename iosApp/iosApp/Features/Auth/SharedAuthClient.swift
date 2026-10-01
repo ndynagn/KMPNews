@@ -13,6 +13,7 @@ final class SharedAuthClient: AuthClient {
     static func validateInput(_ input: AuthUiState, resend: Bool) -> String? {
         let validator = AuthInputValidator()
         let issue: AuthInputIssue?
+
         if resend {
             issue = validator.email(email: input.email)
         } else {
@@ -26,6 +27,7 @@ final class SharedAuthClient: AuthClient {
             }
         }
         guard let issue else { return nil }
+
         switch issue {
         case .email: return "auth.invalid_email"
         case .passwordRequired: return "auth.password_required"
@@ -40,6 +42,7 @@ final class SharedAuthClient: AuthClient {
             let task = Task { @MainActor [authRepository] in
                 for await session in authRepository.session {
                     if Task.isCancelled { break }
+
                     if let account = session as? AuthSessionAuthenticated {
                         continuation.yield(.authenticated(email: account.user.email))
                     } else if let unavailable = session as? AuthSessionUnavailable {
@@ -82,6 +85,7 @@ final class SharedAuthClient: AuthClient {
 
     fileprivate static func problem(_ failure: AuthFailure?) -> AuthProblem? {
         guard let failure else { return nil }
+
         switch failure {
         case .invalidCredentials: return .invalidCredentials
         case .emailUnconfirmed: return .unconfirmed
@@ -113,6 +117,7 @@ private final class SharedAuthRecoveryClient: AuthRecoveryClient {
 
     func resetPassword(_ password: String) async throws -> AuthResetResult {
         let result = try await recovery.resetPassword(password: password)
+
         return AuthResetResult(
             problem: SharedAuthClient.problem(result.failure), passwordChanged: result.passwordChanged)
     }

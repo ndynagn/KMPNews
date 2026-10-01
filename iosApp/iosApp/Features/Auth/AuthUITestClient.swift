@@ -20,25 +20,42 @@
         }
 
         func restore() async throws -> AuthProblem? { nil }
+
         func signIn(email: String, password: String) async throws -> AuthProblem? {
             try await pause()
+
             if arguments.contains("--auth-ui-unconfirmed") { return .unconfirmed }
+
             authorize(email)
+
             return nil
         }
 
-        func register(email: String, password: String) async throws -> AuthProblem? { try await pause(); return nil }
+        func register(email: String, password: String) async throws -> AuthProblem? {
+            try await pause()
+
+            return nil
+        }
+
         func confirm(email: String, code: String) async throws -> AuthProblem? {
             try await pause()
             guard code == "012345" else { return .invalidCode }
+
             authorize(email)
+
             return nil
         }
 
-        func resend(email: String) async throws -> AuthProblem? { try await pause(); return nil }
+        func resend(email: String) async throws -> AuthProblem? {
+            try await pause()
+
+            return nil
+        }
+
         func signOut() async throws -> AuthProblem? {
             state = .guest
             continuation?.yield(state)
+
             return nil
         }
 
@@ -57,36 +74,47 @@
         private final class Recovery: AuthRecoveryClient {
             private weak var owner: AuthUITestClient?
             private var email = ""
-            private var verified = false
-            private var closed = false
+            private var isVerified = false
+            private var isClosed = false
 
             init(owner: AuthUITestClient) { self.owner = owner }
 
             func requestCode(email: String) async throws -> AuthProblem? {
                 try await owner?.pause()
-                return closed ? .expired : nil
+
+                return isClosed ? .expired : nil
             }
 
             func verifyCode(email: String, code: String) async throws -> AuthProblem? {
                 try await owner?.pause()
-                guard !closed else { return .expired }
+                guard !isClosed else { return .expired }
+
                 guard code == "012345" else { return .invalidCode }
+
                 self.email = email
-                verified = true
+                isVerified = true
+
                 return nil
             }
 
             func resetPassword(_ password: String) async throws -> AuthResetResult {
                 try await owner?.pause()
-                guard !closed && verified else { return AuthResetResult(problem: .expired) }
+                guard !isClosed && isVerified else { return AuthResetResult(problem: .expired) }
+
                 if owner?.arguments.contains("--auth-ui-storage-failure") == true {
                     return AuthResetResult(problem: .storage, passwordChanged: true)
                 }
+
                 owner?.authorize(email)
+
                 return AuthResetResult(problem: nil, passwordChanged: true)
             }
 
-            func cancel() async { closed = true; email = ""; verified = false }
+            func cancel() async {
+                isClosed = true
+                email = ""
+                isVerified = false
+            }
         }
     }
 #endif

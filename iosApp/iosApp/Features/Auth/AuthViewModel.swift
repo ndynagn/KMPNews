@@ -7,7 +7,7 @@ final class AuthViewModel {
     private(set) var state: AuthUiState
     private let client: any AuthClient
     private var recovery: any AuthRecoveryClient
-    private var closed = false
+    private var isClosed = false
     private var request: Task<Void, Never>?
     private var countdown: Task<Void, Never>?
     private var generation = 0
@@ -22,18 +22,27 @@ final class AuthViewModel {
     }
 
     func onEvent(_ event: AuthEvent) {
-        guard !closed, !state.isBusy, !state.isComplete else { return }
+        guard !isClosed, !state.isBusy, !state.isComplete else { return }
+
         if case .code(let value) = event {
             let code = String(value.filter { "0123456789".contains($0) }.prefix(6))
+
             guard code != state.code else { return }
+
             state.code = code
             state.errorKey = nil
             if code.count == 6 && [.confirm, .recoveryCode].contains(state.step) { submit(resend: false) }
+
             return
         }
+
         state.errorKey = nil
+
         switch event {
-        case .email(let value): state.email = value; state.needsConfirmation = false; updateCountdown()
+        case .email(let value):
+            state.email = value
+            state.needsConfirmation = false
+            updateCountdown()
         case .password(let value): state.password = value
         case .repeatPassword(let value): state.repeatPassword = value
         case .code: break
@@ -41,7 +50,9 @@ final class AuthViewModel {
         case .recovery: navigate(to: .recovery)
         case .returnToLogin:
             renewRecovery()
+
             let email = state.email
+
             state = AuthUiState(step: .signIn, email: email)
         case .confirmEmail:
             navigate(to: .confirm)
@@ -57,23 +68,29 @@ final class AuthViewModel {
     /// Native back navigation cancels the active request before restoring an earlier step.
     func pop(toDepth depth: Int) {
         guard depth >= 0, depth < state.history.count else { return }
+
         generation += 1
         request?.cancel()
         state.isBusy = false
+
         while state.history.count > depth {
             onEvent(.back)
         }
     }
 
     func close() {
-        guard !closed else { return }
-        closed = true
+        guard !isClosed else { return }
+
+        isClosed = true
         generation += 1
         request?.cancel()
         countdown?.cancel()
+
         let abandoned = recovery
+
         // This bounded cleanup owns only the old flow, never a newly opened form.
         Task { await abandoned.cancel() }
+
         state.isBusy = false
         state.email = ""
         state.password = ""
@@ -89,12 +106,14 @@ final class AuthViewModel {
 
     private func cooldownKey(for step: AuthStep, email: String) -> String {
         let purpose = [.recovery, .recoveryCode, .newPassword].contains(step) ? "recovery" : "signup"
+
         return "\(purpose):\(email)"
     }
 
     private func navigate(to step: AuthStep, goingBack: Bool = false) {
         let history = goingBack ? Array(state.history.dropLast()) : state.history + [state.step]
         let email = state.email.trimmingCharacters(in: .whitespacesAndNewlines)
+
         state = AuthUiState(step: step, history: history, email: email)
         updateCountdown()
     }
@@ -106,18 +125,26 @@ final class AuthViewModel {
 
     private func submit(resend: Bool) {
         guard !state.passwordWasChanged else { return }
+
         updateCountdown()
+
         guard !(resend || state.step == .recovery) || state.resendSeconds == 0 else { return }
+
         let email = state.email.trimmingCharacters(in: .whitespacesAndNewlines)
         state.errorKey = client.validate(state, resend: resend)
+
         guard state.errorKey == nil else { return }
+
         state.isBusy = true
+
         let input = state
         let version = generation
+
         request = Task { [weak self, client, recovery] in
             do {
                 let problem: AuthProblem?
                 var passwordChanged = false
+
                 if resend {
                     problem =
                         input.step == .recoveryCode
@@ -137,6 +164,7 @@ final class AuthViewModel {
                     }
                 }
                 guard !Task.isCancelled, let self, self.generation == version else { return }
+
                 self.state.isBusy = false
                 if let problem {
                     self.state.passwordWasChanged = passwordChanged
@@ -177,8 +205,14 @@ final class AuthViewModel {
         countdown?.cancel()
         countdown = Task { [weak self] in
             while !Task.isCancelled {
-                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                do {
+                    try await Task.sleep(for: .seconds(1))
+                } catch {
+                    return
+                }
+
                 guard !Task.isCancelled, let self else { return }
+
                 self.updateCountdown()
                 if self.resendDeadlines.values.allSatisfy({ $0 <= self.now() }) { return }
             }
