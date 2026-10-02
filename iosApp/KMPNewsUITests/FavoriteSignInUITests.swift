@@ -69,11 +69,18 @@ final class FavoriteSignInUITests: XCTestCase {
             NSPredicate(format: "label == %@", "Удалить из избранного")
         ).firstMatch
         XCTAssertTrue(remove.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Новость добавлена в избранное"].waitForExistence(timeout: 5))
         capture(app, "favorite-filled-star")
         app.tabBars.buttons["Избранное"].tap()
         XCTAssertTrue(app.otherElements["feed.article.fixture-0"].waitForExistence(timeout: 5))
         capture(app, "favorites-list-content")
         app.buttons["favorites.save.fixture-0"].tap()
+        XCTAssertTrue(app.otherElements["feed.article.fixture-0"].exists)
+        XCTAssertEqual(app.buttons["favorites.save.fixture-0"].label, "Добавить в избранное")
+        capture(app, "favorite-removed-retained")
+        let list = app.scrollViews["favorites.list"]
+        list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).press(
+            forDuration: 0.1, thenDragTo: list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85)))
         XCTAssertTrue(app.staticTexts["Пока нет избранных новостей"].waitForExistence(timeout: 5))
         capture(app, "favorites-list-empty")
         app.tabBars.buttons["Новости"].tap()
@@ -85,6 +92,25 @@ final class FavoriteSignInUITests: XCTestCase {
             NSPredicate(format: "label == %@", "Добавить в избранное")
         ).firstMatch
         XCTAssertTrue(add.waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testStarChangesBeforeSuccessNotice() {
+        let app = launch(extra: ["--favorites-ui-slow"])
+        app.tabBars.buttons["Профиль"].tap()
+        app.buttons["profile.login"].tap()
+        signIn(app)
+        app.tabBars.buttons["Новости"].tap()
+        let star = app.buttons["favorites.save.fixture-0"]
+        XCTAssertTrue(star.waitForExistence(timeout: 5))
+
+        star.tap()
+
+        XCTAssertEqual(star.label, "Удалить из избранного")
+        XCTAssertFalse(app.staticTexts["Новость добавлена в избранное"].exists)
+        capture(app, "favorite-optimistic-star")
+        XCTAssertTrue(app.staticTexts["Новость добавлена в избранное"].waitForExistence(timeout: 10))
+        capture(app, "favorite-confirmed-notice")
     }
 
     @MainActor

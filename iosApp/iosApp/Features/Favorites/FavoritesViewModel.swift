@@ -12,9 +12,27 @@ final class FavoritesViewModel {
     private var generation = 0
     private var account: String?
     private var failedAppend = false
+    private var retainedArticles: [FeedArticle]?
     private let client: any FavoriteSaveClient
 
+    var articles: [FeedArticle] {
+        let current = snapshot?.articles ?? []
+        guard let retainedArticles else { return current }
+
+        let currentIDs = Set(current.map(\.id))
+        var visible = current
+        for (index, article) in retainedArticles.enumerated() where !currentIDs.contains(article.id) {
+            visible.insert(article, at: min(index, visible.count))
+        }
+        return visible
+    }
+
     init(client: any FavoriteSaveClient) { self.client = client }
+
+    /// Keep visible rows stable during deletion; only a successful refresh releases them.
+    func retainUntilRefresh() {
+        retainedArticles = articles
+    }
 
     func accountChanged(_ profile: ProfileState) {
         let email: String?
@@ -29,6 +47,7 @@ final class FavoritesViewModel {
         stop()
         account = email
         snapshot = nil
+        retainedArticles = nil
         hasError = false
 
         guard email != nil else { return }
@@ -40,7 +59,9 @@ final class FavoritesViewModel {
 
                 switch read {
                 case .snapshot(let snapshot): self.snapshot = snapshot
-                case .signedOut: self.snapshot = nil
+                case .signedOut:
+                    self.snapshot = nil
+                    self.retainedArticles = nil
                 case .failed: self.hasError = true
                 }
             }
@@ -90,6 +111,7 @@ final class FavoritesViewModel {
             self.request = nil
             self.hasError = result != .saved
             self.failedAppend = append
+            if result == .saved, !append { self.retainedArticles = nil }
         }
     }
 }

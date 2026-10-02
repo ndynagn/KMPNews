@@ -22,11 +22,11 @@ struct FavoritesScreen: View {
                 } else if case .unavailable = profile {
                     EmptyView()
                 } else {
-                    ForEach(viewModel.snapshot?.articles ?? []) { article in
+                    ForEach(viewModel.articles) { article in
                         FeedCard(
-                            article: article, isSaved: true, isSaving: actions.savingID == article.id,
+                            article: article, isSaved: isSaved(article),
                             canSave: actions.savingID == nil && !viewModel.isLoading,
-                            onSave: { actions.save(article, profile: profile, isSaved: true) }
+                            onSave: { actions.save(article, profile: profile, isSaved: isSaved(article)) }
                         )
                         .id(article.id)
                         .onAppear {
@@ -41,10 +41,6 @@ struct FavoritesScreen: View {
                             title: "favorites.loadError", systemImage: "exclamationmark.circle", isCompact: true)
                         AppActionButton(title: "feed.retry", isEnabled: actions.savingID == nil) { viewModel.retry() }
                             .accessibilityIdentifier("favorites.retry")
-                    } else if !viewModel.hasError, viewModel.snapshot?.isInitialized == true,
-                        viewModel.snapshot?.articles.isEmpty == true, !viewModel.isLoading
-                    {
-                        AppStatusView(title: "favorites.empty", systemImage: "star", message: "favorites.emptyMessage")
                     }
                 }
             }
@@ -63,9 +59,13 @@ struct FavoritesScreen: View {
                     }
                 }
                 .padding(16)
+            } else if showsEmptyState {
+                AppStatusView(title: "favorites.empty", systemImage: "star", message: "favorites.emptyMessage")
+                    .allowsHitTesting(false)
             }
         }
         .scrollPosition(id: $scrollID)
+        .scrollBounceBehavior(.always)
         .refreshable {
             if actions.savingID == nil { await viewModel.refresh() }
         }
@@ -79,10 +79,21 @@ struct FavoritesScreen: View {
         .onChange(of: viewModel.snapshot?.articles.map(\.id)) { _, _ in loadMoreIfNeeded() }
     }
 
+    private func isSaved(_ article: FeedArticle) -> Bool {
+        actions.isSaved(article.id, fallback: viewModel.snapshot?.articles.contains { $0.id == article.id } == true)
+    }
+
+    private var showsEmptyState: Bool {
+        guard case .authenticated = profile else { return false }
+
+        return viewModel.snapshot?.isInitialized == true && viewModel.articles.isEmpty
+            && !viewModel.isLoading && !viewModel.hasError
+    }
+
     private var showsFullScreenError: Bool {
         if case .unavailable = profile { return true }
         guard case .authenticated = profile else { return false }
-        return viewModel.hasError && (viewModel.snapshot?.articles.isEmpty ?? true)
+        return viewModel.hasError && viewModel.articles.isEmpty
     }
 
     private func loadMoreIfNeeded() {

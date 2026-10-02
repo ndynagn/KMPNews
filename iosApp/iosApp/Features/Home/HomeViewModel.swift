@@ -64,8 +64,9 @@ final class HomeViewModel {
         #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--auth-ui-fixture") {
                 let client = FavoriteSaveUITestClient()
-                favoriteSaveViewModel = FavoriteSaveViewModel(client: client)
-                favoritesViewModel = FavoritesViewModel(client: client)
+                let list = FavoritesViewModel(client: client)
+                favoritesViewModel = list
+                favoriteSaveViewModel = FavoriteSaveViewModel(client: client, onRemove: list.retainUntilRefresh)
                 return
             }
         #endif
@@ -77,8 +78,9 @@ final class HomeViewModel {
                 databasePath: directory.appendingPathComponent("favorites.db").path)
             favoritesDependencies = dependencies
             let client = SharedFavoriteSaveClient(repository: dependencies.favoritesRepository)
-            favoriteSaveViewModel = FavoriteSaveViewModel(client: client)
-            favoritesViewModel = FavoritesViewModel(client: client)
+            let list = FavoritesViewModel(client: client)
+            favoritesViewModel = list
+            favoriteSaveViewModel = FavoriteSaveViewModel(client: client, onRemove: list.retainUntilRefresh)
         } catch {
             // Feed and authentication remain available when favorites storage cannot open.
             favoriteSaveViewModel = FavoriteSaveViewModel(client: UnavailableFavoriteSaveClient())

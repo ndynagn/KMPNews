@@ -11,7 +11,11 @@ final class FavoriteSaveViewModel {
     private(set) var savedIDs: Set<String> = []
     private(set) var hasError = false
     private(set) var addedFeedback = 0
+    private(set) var showsAddedNotice = false
     private(set) var membershipFailed = false
+    private var noticeTask: Task<Void, Never>?
+    private var knownIDs: Set<String> = []
+    private var previousSaved = false
     private var pendingArticle: FeedArticle?
     private var pendingRemoval: Bool?
     private var membershipTask: Task<Void, Never>?
@@ -21,14 +25,22 @@ final class FavoriteSaveViewModel {
     private var accountEmail: String?
     private var savesAfterDismissal = false
     private let client: any FavoriteSaveClient
+    private let onRemove: () -> Void
 
-    init(client: any FavoriteSaveClient) { self.client = client }
+    init(client: any FavoriteSaveClient, onRemove: @escaping () -> Void = {}) {
+        self.client = client
+        self.onRemove = onRemove
+    }
+
+    func isSaved(_ id: String, fallback: Bool) -> Bool {
+        knownIDs.contains(id) ? savedIDs.contains(id) : fallback
+    }
 
     func save(_ article: FeedArticle, profile: ProfileState, isSaved: Bool? = nil) {
         guard savingID == nil, presentation == nil, !savesAfterDismissal else { return }
 
         pendingArticle = article
-        pendingRemoval = isSaved == true ? true : nil
+        pendingRemoval = isSaved ?? savedIDs.contains(article.id)
         hasError = false
         switch profile {
         case .guest:
@@ -106,6 +118,7 @@ final class FavoriteSaveViewModel {
             case .snapshot(let saved):
                 self.savedIDs.subtract(ids)
                 self.savedIDs.formUnion(saved)
+                self.knownIDs.formUnion(ids)
                 self.membershipFailed = false
             case .failed: self.membershipFailed = true
             }
@@ -117,13 +130,15 @@ final class FavoriteSaveViewModel {
         case .guest:
             if accountEmail != nil { dismiss() }
             accountEmail = nil
-            savedIDs.removeAll()
             cancelOperation()
+            savedIDs.removeAll()
+            knownIDs.removeAll()
         case .authenticated(let email):
             if let accountEmail, accountEmail != email {
                 cancelOperation()
                 dismiss()
                 savedIDs.removeAll()
+                knownIDs.removeAll()
             }
             accountEmail = email
         case .restoring, .unavailable: break
@@ -135,7 +150,15 @@ final class FavoriteSaveViewModel {
         dismiss()
     }
 
+    func dismissAddedNotice() {
+        noticeTask?.cancel()
+        showsAddedNotice = false
+    }
+
     private func cancelOperation() {
+        rollback()
+        noticeTask?.cancel()
+        showsAddedNotice = false
         membershipTask?.cancel()
         membershipTask = nil
         membershipFailed = false
@@ -145,29 +168,44 @@ final class FavoriteSaveViewModel {
         savingID = nil
     }
 
+    private func rollback() {
+        guard let id = savingID else { return }
+
+        if previousSaved { savedIDs.insert(id) } else { savedIDs.remove(id) }
+    }
+
+    private func announceAddition() {
+        addedFeedback += 1
+        showsAddedNotice = true
+        noticeTask?.cancel()
+        noticeTask = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(3)) } catch { return }
+            self?.showsAddedNotice = false
+        }
+    }
+
     private func startSave() {
         guard let article = pendingArticle, operation == nil else { return }
 
         hasError = false
         membershipTask?.cancel()
         membershipRevision += 1
+        noticeTask?.cancel()
+        showsAddedNotice = false
+        previousSaved = pendingRemoval == true
+        knownIDs.insert(article.id)
+        if previousSaved {
+            onRemove()
+            savedIDs.remove(article.id)
+        } else {
+            savedIDs.insert(article.id)
+        }
         savingID = article.id
         let currentGeneration = generation
         operation = Task { [weak self, client] in
             let result: FavoriteSaveResult
             do {
                 guard let self else { return }
-                if self.pendingRemoval == nil {
-                    let membership = try await client.membership([article.id])
-                    guard !Task.isCancelled, self.generation == currentGeneration else { return }
-                    guard case .snapshot(let ids) = membership else {
-                        self.operation = nil
-                        self.savingID = nil
-                        self.hasError = true
-                        return
-                    }
-                    self.pendingRemoval = ids.contains(article.id)
-                }
                 result =
                     self.pendingRemoval == true
                     ? try await client.remove(article.id) : try await client.save(article)
@@ -178,6 +216,7 @@ final class FavoriteSaveViewModel {
             guard !Task.isCancelled, let self, self.generation == currentGeneration else { return }
 
             self.operation = nil
+            if result != .saved { self.rollback() }
             self.savingID = nil
             switch result {
             case .saved:
@@ -185,7 +224,7 @@ final class FavoriteSaveViewModel {
                     self.savedIDs.remove(article.id)
                 } else {
                     self.savedIDs.insert(article.id)
-                    self.addedFeedback += 1
+                    self.announceAddition()
                 }
                 self.pendingArticle = nil
                 self.pendingRemoval = nil

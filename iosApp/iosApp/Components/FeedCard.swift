@@ -4,7 +4,6 @@ import SwiftUI
 struct FeedCard: View {
     let article: FeedArticle
     let isSaved: Bool
-    let isSaving: Bool
     let canSave: Bool
     let onSave: (() -> Void)?
 
@@ -39,14 +38,8 @@ struct FeedCard: View {
     @ViewBuilder
     private func favoriteButton(action: @escaping () -> Void) -> some View {
         let button = Button(action: action) {
-            Group {
-                if isSaving {
-                    ProgressView()
-                } else {
-                    Image(systemName: isSaved ? "star.fill" : "star")
-                }
-            }
-            .frame(width: 20, height: 20)
+            Image(systemName: isSaved ? "star.fill" : "star")
+                .frame(width: 20, height: 20)
         }
         .foregroundStyle(Color.blue)
         .tint(.blue)

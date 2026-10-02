@@ -39,7 +39,8 @@
         }
 
         func save(_ article: FeedArticle) async throws -> FavoriteSaveResult {
-            try await Task.sleep(for: .milliseconds(150))
+            let delay = ProcessInfo.processInfo.arguments.contains("--favorites-ui-slow") ? 4_000 : 150
+            try await Task.sleep(for: .milliseconds(delay))
             if ProcessInfo.processInfo.arguments.contains("--favorites-ui-error"), !didFail {
                 didFail = true
                 return .failed

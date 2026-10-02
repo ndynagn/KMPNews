@@ -2220,6 +2220,22 @@
           }
         }
       }
+    },
+    "favorites.addedNotice": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "News added to favorites"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новость добавлена в избранное"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

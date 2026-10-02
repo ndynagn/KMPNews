@@ -80,12 +80,15 @@ struct FavoriteSavePresentationTests {
         precondition(model.savedIDs.isEmpty)
         client.result = .failed
         model.save(article, profile: .authenticated(email: "reader@example.test"))
+        precondition(model.savedIDs.contains(article.id), "The star changes before the request completes")
+        precondition(model.addedFeedback == feedback && !model.showsAddedNotice)
         await settle()
         precondition(model.hasError && model.savedIDs.isEmpty)
         client.result = .saved
         model.retry(profile: .authenticated(email: "reader@example.test"))
         await settle()
         precondition(!model.hasError && model.savedIDs.contains(article.id))
+        precondition(model.showsAddedNotice && model.addedFeedback == feedback + 1)
 
         client.result = .authenticationRequired
         model.save(article, profile: .authenticated(email: "reader@example.test"))

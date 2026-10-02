@@ -1,3 +1,4 @@
+import AlertToast
 import SharedLogic
 import SwiftUI
 
@@ -146,6 +147,17 @@ struct ContentView: View {
             }
         }
         .sensoryFeedback(.success, trigger: homeViewModel.favoriteSaveViewModel?.addedFeedback ?? 0)
+        .toast(isPresenting: favoriteAddedNotice, duration: 0, tapToDismiss: false) {
+            AlertToast(
+                displayMode: .hud, type: .complete(.blue),
+                title: String(localized: "favorites.addedNotice"),
+                style: .style(titleFont: .subheadline))
+        }
+        .onChange(of: homeViewModel.favoriteSaveViewModel?.addedFeedback) { _, _ in
+            if homeViewModel.favoriteSaveViewModel?.showsAddedNotice == true {
+                UIAccessibility.post(notification: .announcement, argument: String(localized: "favorites.addedNotice"))
+            }
+        }
         .alert("favorites.updateError", isPresented: favoriteError) {
             Button("feed.retry") {
                 homeViewModel.favoriteSaveViewModel?.retry(profile: profileViewModel.state)
@@ -211,6 +223,14 @@ struct ContentView: View {
         } else {
             homeViewModel.feedViewModel?.deactivate()
         }
+    }
+
+    private var favoriteAddedNotice: Binding<Bool> {
+        Binding(
+            get: { homeViewModel.favoriteSaveViewModel?.showsAddedNotice == true },
+            set: { isPresented in
+                if !isPresented { homeViewModel.favoriteSaveViewModel?.dismissAddedNotice() }
+            })
     }
 
     private func updateMembership() {

@@ -15,7 +15,6 @@ struct FeedScreen: View {
                 ForEach(viewModel.state.snapshot?.articles ?? []) { article in
                     FeedCard(
                         article: article, isSaved: savedIDs.contains(article.id),
-                        isSaving: savingID == article.id,
                         canSave: savingID == nil && !favoritesBusy, onSave: onSave.map { action in { action(article) } }
                     )
                     .id(article.id)

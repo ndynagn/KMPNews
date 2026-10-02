@@ -43,6 +43,26 @@ struct FavoritesListPresentationTests {
         await settle()
         precondition(!model.hasError && client.appends == 2)
 
+        model.retainUntilRefresh()
+        client.continuation?.yield(.snapshot(FavoritesSnapshot(articles: [], hasMore: false, isInitialized: true)))
+        await settle()
+        precondition(model.articles == [article], "Deletion must preserve the displayed row until refresh")
+        let nextPageArticle = FeedArticle(
+            id: "older", title: "Older", summary: nil, imageURL: nil, source: nil, publishedAt: nil)
+        client.continuation?.yield(
+            .snapshot(FavoritesSnapshot(articles: [nextPageArticle], hasMore: false, isInitialized: true)))
+        await settle()
+        precondition(
+            model.articles == [article, nextPageArticle], "Appending must not move older rows above retained rows")
+        client.continuation?.yield(.snapshot(FavoritesSnapshot(articles: [], hasMore: false, isInitialized: true)))
+        await settle()
+        client.result = .failed
+        await model.refresh()
+        precondition(model.articles == [article], "Failed refresh must preserve retained rows")
+        client.result = .saved
+        await model.refresh()
+        precondition(model.articles.isEmpty, "Successful refresh releases removed rows")
+
         let oldStream = client.continuation
         model.accountChanged(.authenticated(email: "second@example.test"))
         precondition(model.snapshot == nil)
