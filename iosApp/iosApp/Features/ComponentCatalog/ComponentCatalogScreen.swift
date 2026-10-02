@@ -5,13 +5,14 @@
         @Environment(\.dismiss) private var dismiss
         @State private var viewModel = ComponentCatalogViewModel()
         @State private var showsAuth = false
+        @State private var authViewModel = CatalogAuthViewModel()
         @State private var showsConfirmation = false
         @State private var selectedTab = 0
 
         var body: some View {
             NavigationStack { catalog }
-                .sheet(isPresented: $showsAuth) {
-                    CatalogAuthScreen(onSuccess: viewModel.completeAuth)
+                .sheet(isPresented: $showsAuth, onDismiss: authViewModel.close) {
+                    CatalogAuthScreen(viewModel: authViewModel, onSuccess: viewModel.completeAuth)
                 }
                 .alert(
                     "kit.demo",

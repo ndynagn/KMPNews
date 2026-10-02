@@ -125,6 +125,8 @@ final class AuthDesignSystemUITests: XCTestCase {
         XCTAssertEqual(app.textFields["auth.email"].value as? String, "Email")
         XCTAssertEqual(app.secureTextFields["auth.password"].value as? String, "Пароль")
         app.navigationBars["Войти"].swipeDown()
+        XCTAssertTrue(app.buttons["auth.close"].exists)
+        app.buttons["auth.close"].tap()
         XCTAssertTrue(app.buttons["profile.login"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["profile.logout"].waitForExistence(timeout: 9))
     }

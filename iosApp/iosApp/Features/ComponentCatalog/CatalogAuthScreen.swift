@@ -3,7 +3,7 @@
 
     struct CatalogAuthScreen: View {
         @Environment(\.dismiss) private var dismiss
-        @State private var viewModel = CatalogAuthViewModel()
+        let viewModel: CatalogAuthViewModel
         let onSuccess: () -> Void
 
         var body: some View {
@@ -19,12 +19,12 @@
                     close()
                 }
             }
-            .onDisappear { viewModel.close() }
+            .onDisappear { viewModel.beginDismissal() }
             .presentationDetents([.large])
         }
 
         private func close() {
-            viewModel.close()
+            viewModel.beginDismissal()
             dismiss()
         }
     }

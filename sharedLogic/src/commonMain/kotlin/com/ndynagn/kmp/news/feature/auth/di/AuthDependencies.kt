@@ -6,6 +6,7 @@ import com.ndynagn.kmp.news.feature.auth.data.AuthSessionStorage
 import com.ndynagn.kmp.news.feature.auth.data.PersistentAuthRepository
 import com.ndynagn.kmp.news.feature.auth.data.SupabaseAuthClient
 import com.ndynagn.kmp.news.feature.auth.domain.AuthRepository
+import com.ndynagn.kmp.news.network.AccountSessionAccess
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.HttpTimeout
@@ -17,8 +18,13 @@ import org.koin.plugin.module.dsl.single
 import kotlin.time.Clock
 
 /** One application-owned Auth graph, independent of feed storage and HTTP configuration. */
-class AuthDependencies internal constructor(private val graph: KoinApplication, private val client: HttpClient) {
+class AuthDependencies internal constructor(
+    private val graph: KoinApplication,
+    private val client: HttpClient,
+    internal val configuration: AuthConfiguration,
+) {
     val authRepository: AuthRepository = graph.koin.get()
+    internal val accountAccess: AccountSessionAccess = graph.koin.get<PersistentAuthRepository>()
 
     /** Call after all callers/observers stop; does not erase the saved session. */
     fun close() {
@@ -42,7 +48,7 @@ internal fun assembleAuthDependencies(
             },
         )
     }
-    return AuthDependencies(graph, client)
+    return AuthDependencies(graph, client, configuration)
 }
 
 internal fun HttpClientConfig<*>.configureAuthClient() {

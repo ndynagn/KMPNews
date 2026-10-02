@@ -112,11 +112,17 @@
             resendSeconds = max(0, Int(ceil((deadlines[email] ?? .distantPast).timeIntervalSince(now()))))
         }
 
-        func close() {
-            cancelRequest()
+        func beginDismissal() {
+            generation += 1
+            request?.cancel()
+            request = nil
             ticker?.cancel()
             ticker = nil
+        }
 
+        func close() {
+            beginDismissal()
+            isBusy = false
             clearSecrets()
             email = ""
             path = []
@@ -153,7 +159,6 @@
                 } else {
                     switch submittedStep {
                     case .login, .confirm:
-                        clearSecrets()
                         isCompleted = true
                     case .register:
                         navigate(.confirm)

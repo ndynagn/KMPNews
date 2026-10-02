@@ -25,7 +25,8 @@ struct ComponentCatalogTests {
         await verifyBackCancellation()
 
         print(
-            "PASS: catalog registration, confirmation, errors, resend, recovery, duplicate submission, back and close cancellation"
+            "PASS: catalog registration, confirmation, errors, resend, recovery, "
+                + "duplicate submission, back and close cancellation"
         )
     }
 
@@ -93,11 +94,13 @@ struct ComponentCatalogTests {
         gate.finish()
         await wait { model.isCompleted }
 
-        precondition(model.code.isEmpty)
-
+        precondition(model.code == "012345", "Keep the successful form visible until dismissal completes")
+        model.beginDismissal()
+        precondition(model.code == "012345")
         model.close()
 
         precondition(model.email.isEmpty && model.path.isEmpty && !model.isCompleted)
+        precondition(model.code.isEmpty)
     }
 
     @MainActor

@@ -35,7 +35,7 @@ struct ProfileScreen: View {
                     case .guest:
                         AppActionButton(title: "auth.login", action: onLogin)
                             .accessibilityIdentifier("profile.login")
-                        AppActionButton(title: "auth.register", emphasis: .secondary, action: onRegister)
+                        RegistrationPrompt(action: onRegister)
                             .accessibilityIdentifier("profile.register")
                     case .authenticated:
                         AppActionButton(title: "auth.logout", emphasis: .secondary, isBusy: isBusy, action: onLogout)

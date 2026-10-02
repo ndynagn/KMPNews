@@ -1,14 +1,19 @@
 import SwiftUI
 
 struct AuthScreen: View {
-    @State private var viewModel: AuthViewModel
+    let viewModel: AuthViewModel
     let onComplete: () -> Void
+    private let onAuthenticated: (() -> Void)?
     private let initialStep: AuthStep
 
-    init(client: any AuthClient, step: AuthStep, onComplete: @escaping () -> Void) {
-        _viewModel = State(initialValue: AuthViewModel(client: client, step: step))
+    init(
+        viewModel: AuthViewModel, onAuthenticated: (() -> Void)? = nil,
+        onComplete: @escaping () -> Void
+    ) {
+        self.viewModel = viewModel
         self.onComplete = onComplete
-        initialStep = step
+        self.onAuthenticated = onAuthenticated
+        initialStep = viewModel.initialStep
     }
 
     private var path: Binding<[AuthStep]> {
@@ -19,20 +24,28 @@ struct AuthScreen: View {
 
     var body: some View {
         NavigationStack(path: path) {
-            AuthStepScreen(viewModel: viewModel, step: initialStep, isRoot: true, onClose: onComplete)
+            AuthStepScreen(viewModel: viewModel, step: initialStep, onClose: onComplete)
                 .navigationDestination(for: AuthStep.self) { step in
-                    AuthStepScreen(viewModel: viewModel, step: step, isRoot: false, onClose: onComplete)
+                    AuthStepScreen(viewModel: viewModel, step: step, onClose: onComplete)
                 }
         }
-        .onChange(of: viewModel.state.isComplete) { _, complete in if complete { onComplete() } }
-        .onDisappear { viewModel.close() }
+        .presentationSizing(.page)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
+        .interactiveDismissDisabled()
+        .onChange(of: viewModel.state.isComplete) { _, complete in
+            if complete {
+                viewModel.beginDismissal()
+                (onAuthenticated ?? onComplete)()
+            }
+        }
+        .onDisappear { viewModel.beginDismissal() }
     }
 }
 
 private struct AuthStepScreen: View {
     let viewModel: AuthViewModel
     let step: AuthStep
-    let isRoot: Bool
     let onClose: () -> Void
 
     private enum Field: Hashable { case email, code }
@@ -184,14 +197,12 @@ private struct AuthStepScreen: View {
                 Spacer()
                 AppKeyboardDismissButton()
             }
-            if isRoot {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("auth.close", systemImage: "xmark") {
-                        viewModel.close()
-                        onClose()
-                    }
-                    .labelStyle(.iconOnly).accessibilityIdentifier("auth.close")
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("auth.close", systemImage: "xmark") {
+                    viewModel.beginDismissal()
+                    onClose()
                 }
+                .labelStyle(.iconOnly).accessibilityIdentifier("auth.close")
             }
         }
     }

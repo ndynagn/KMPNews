@@ -131,7 +131,9 @@ struct AuthPresentationTests {
         await verifyLogoutWarning()
 
         print(
-            "PASS: registration, validation, leading-zero code, cooldown, unconfirmed login, duplicate suppression, cancellation, logout warning, recovery navigation, storage failure and late-response isolation"
+            "PASS: registration, validation, leading-zero code, cooldown, unconfirmed login, "
+                + "duplicate suppression, cancellation, logout warning, recovery navigation, "
+                + "storage failure and late-response isolation"
         )
     }
 
@@ -257,10 +259,14 @@ struct AuthPresentationTests {
 
         precondition(client.logins == 1)
 
-        pending.close()
+        pending.beginDismissal()
         await settle()
 
         precondition(client.wasCancelled && !pending.state.isComplete)
+        precondition(pending.state.password == "password", "Keep the form intact during dismissal")
+        pending.onEvent(.password("late edit"))
+        precondition(pending.state.password == "password", "A closing flow must reject edits")
+        pending.close()
         precondition(pending.state.password.isEmpty)
     }
 
@@ -396,9 +402,10 @@ struct AuthPresentationTests {
         success.onEvent(.submit)
         await settle()
 
-        precondition(success.state.isComplete && success.state.password.isEmpty)
+        precondition(success.state.isComplete && success.state.password == "new password")
 
         success.close()
+        precondition(success.state.password.isEmpty)
     }
 
     @MainActor

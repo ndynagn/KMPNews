@@ -12,6 +12,7 @@ import com.ndynagn.kmp.news.feature.auth.data.StoredAuthSession
 import com.ndynagn.kmp.news.feature.auth.data.authJson
 import com.ndynagn.kmp.news.feature.auth.domain.AuthFailure
 import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
+import com.ndynagn.kmp.news.network.CredentialsResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
@@ -27,6 +28,79 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AuthRepositoryTest {
+    @Test
+    fun concurrentFavoritesCredentialsRotateOnlyOnceAndLogoutInvalidatesIdentity() = runTest {
+        var now = 100L
+        val remote = FakeAuthRemote().apply { refreshGate = CompletableDeferred() }
+        val repository = PersistentAuthRepository(remote, FakeAuthStorage(), AuthClock { now })
+        repository.signIn("reader@example.test", "password")
+        val identity = assertNotNull(repository.account.value)
+        now = 5000
+        val first = async { repository.credentials(identity) }
+        remote.refreshStarted.await()
+        val second = async { repository.credentials(identity) }
+        remote.refreshGate?.complete(Unit)
+
+        assertIs<CredentialsResult.Ready>(first.await())
+        assertIs<CredentialsResult.Ready>(second.await())
+        assertEquals(1, remote.refreshes)
+        repository.signOut()
+        var committed = false
+        assertEquals(false, repository.commitIfCurrent(identity) { committed = true })
+        assertEquals(false, committed)
+        assertIs<CredentialsResult.Failed>(repository.credentials(identity))
+        repository.signIn("reader@example.test", "password")
+        assertTrue(repository.account.value != identity)
+    }
+
+    @Test
+    fun recoveryCannotSupplyFavoritesCredentialsAndTransientFailureKeepsCacheIdentity() = runTest {
+        val remote = FakeAuthRemote()
+        val repository = PersistentAuthRepository(remote, FakeAuthStorage(), AuthClock { 100 })
+        repository.restore()
+        val recovery = repository.passwordRecovery()
+        recovery.verifyCode("reader@example.test", "012345")
+
+        assertNull(repository.account.value)
+        recovery.cancel()
+
+        remote.refreshFailure = AuthFailure.NETWORK
+        val offline = PersistentAuthRepository(remote, FakeAuthStorage(expiredSession()), AuthClock { 100 })
+        assertEquals(AuthFailure.NETWORK, offline.restore().failure)
+        val cachedIdentity = assertNotNull(offline.account.value)
+        assertEquals("reader", cachedIdentity.userId)
+        assertIs<CredentialsResult.Failed>(offline.credentials(cachedIdentity))
+    }
+
+    @Test
+    fun rejectedOldTokenUsesRotatedCredentialsAndLateRefreshCannotSurviveLogout() = runTest {
+        var now = 100L
+        val remote = FakeAuthRemote()
+        val storage = FakeAuthStorage(
+            authJson.encodeToString(
+                StoredAuthSession("old-access", "old-refresh", 5000, AuthUserDto("reader", "reader@example.test")),
+            ),
+        )
+        val repository = PersistentAuthRepository(remote, storage, AuthClock { now })
+        repository.restore()
+        val identity = assertNotNull(repository.account.value)
+
+        repository.credentials(identity, "old-access")
+        repository.credentials(identity, "old-access")
+        assertEquals(1, remote.refreshes)
+
+        now = 10000
+        remote.refreshGate = CompletableDeferred()
+        val pending = async { repository.credentials(identity) }
+        while (remote.refreshes < 2) kotlinx.coroutines.yield()
+        repository.signOut()
+        remote.refreshGate?.complete(Unit)
+
+        assertIs<CredentialsResult.Failed>(pending.await())
+        assertNull(repository.account.value)
+        assertNull(storage.value)
+    }
+
     @Test
     fun registrationRequiresConfirmationAndPreservesLeadingZeroCode() = runTest {
         val remote = FakeAuthRemote()

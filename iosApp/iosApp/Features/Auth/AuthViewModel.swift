@@ -3,7 +3,9 @@ import Observation
 
 /// One navigation flow owns its requests. Closing it cancels work and invalidates late completions.
 @MainActor @Observable
-final class AuthViewModel {
+final class AuthViewModel: Identifiable {
+    let id = UUID()
+    let initialStep: AuthStep
     private(set) var state: AuthUiState
     private let client: any AuthClient
     private var recovery: any AuthRecoveryClient
@@ -16,6 +18,7 @@ final class AuthViewModel {
 
     init(client: any AuthClient, step: AuthStep, now: @escaping () -> Date = Date.init) {
         self.client = client
+        initialStep = step
         recovery = client.makeRecovery()
         self.now = now
         state = AuthUiState(step: step)
@@ -67,7 +70,7 @@ final class AuthViewModel {
 
     /// Native back navigation cancels the active request before restoring an earlier step.
     func pop(toDepth depth: Int) {
-        guard depth >= 0, depth < state.history.count else { return }
+        guard !isClosed, depth >= 0, depth < state.history.count else { return }
 
         generation += 1
         request?.cancel()
@@ -78,7 +81,8 @@ final class AuthViewModel {
         }
     }
 
-    func close() {
+    /// Stops work without changing the form rendered during the sheet dismissal animation.
+    func beginDismissal() {
         guard !isClosed else { return }
 
         isClosed = true
@@ -90,7 +94,11 @@ final class AuthViewModel {
 
         // This bounded cleanup owns only the old flow, never a newly opened form.
         Task { await abandoned.cancel() }
+    }
 
+    /// Called by the presenting view after the native sheet has finished dismissing.
+    func close() {
+        beginDismissal()
         state.isBusy = false
         state.email = ""
         state.password = ""
@@ -191,7 +199,7 @@ final class AuthViewModel {
                 } else if input.step == .recoveryCode {
                     self.navigate(to: .newPassword)
                 } else {
-                    self.state = AuthUiState(step: input.step, isComplete: true)
+                    self.state.isComplete = true
                 }
             } catch {
                 guard !Task.isCancelled, let self, self.generation == version else { return }

@@ -7,6 +7,8 @@ struct FeedArticle: Identifiable, Equatable {
     let imageURL: URL?
     let source: String?
     let publishedAt: Date?
+    var articleURL: String? = nil
+    var sourceID: String? = nil
 }
 
 struct FeedSnapshotState: Equatable {

@@ -14,7 +14,7 @@ enum AuthProblem: String {
     case expired = "auth.session_expired"
 }
 
-enum ProfileState {
+enum ProfileState: Equatable {
     case restoring
     case guest
     case authenticated(email: String)

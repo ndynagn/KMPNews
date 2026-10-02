@@ -1,22 +1,29 @@
-import NukeUI
 import SwiftUI
 
 struct FeedScreen: View {
     let viewModel: FeedViewModel
     @Binding var scrollID: String?
+    var savedIDs: Set<String> = []
+    var savingID: String?
+    var favoritesBusy = false
+    var onSave: ((FeedArticle) -> Void)?
     @State private var visibleIDs: Set<String> = []
 
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
                 ForEach(viewModel.state.snapshot?.articles ?? []) { article in
-                    FeedCard(article: article)
-                        .id(article.id)
-                        .onAppear {
-                            visibleIDs.insert(article.id)
-                            loadMoreIfNeeded()
-                        }
-                        .onDisappear { visibleIDs.remove(article.id) }
+                    FeedCard(
+                        article: article, isSaved: savedIDs.contains(article.id),
+                        isSaving: savingID == article.id,
+                        canSave: savingID == nil && !favoritesBusy, onSave: onSave.map { action in { action(article) } }
+                    )
+                    .id(article.id)
+                    .onAppear {
+                        visibleIDs.insert(article.id)
+                        loadMoreIfNeeded()
+                    }
+                    .onDisappear { visibleIDs.remove(article.id) }
                 }
                 status
             }
@@ -76,34 +83,5 @@ struct FeedScreen: View {
         let lastIDs = (viewModel.state.snapshot?.articles ?? []).suffix(3).map(\.id)
 
         if !visibleIDs.isDisjoint(with: lastIDs) { viewModel.onEvent(.loadMore) }
-    }
-}
-
-private struct FeedCard: View {
-    let article: FeedArticle
-
-    var body: some View {
-        AppNewsPreview(
-            title: article.title ?? String(localized: "feed.noTitle"), metadata: metadata,
-            showsImage: article.imageURL != nil
-        ) {
-            if let imageURL = article.imageURL {
-                LazyImage(url: imageURL) { state in
-                    if let image = state.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        AppImagePlaceholder(state: state.error == nil ? .loading : .unavailable)
-                    }
-                }
-                .accessibilityHidden(true)
-            }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("feed.article.\(article.id)")
-    }
-
-    private var metadata: String {
-        [article.source, article.publishedAt?.formatted(date: .numeric, time: .shortened)]
-            .compactMap { $0 }.joined(separator: " · ")
     }
 }

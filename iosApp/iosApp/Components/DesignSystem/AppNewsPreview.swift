@@ -6,6 +6,8 @@ struct AppNewsPreview<Thumbnail: View>: View {
     var metadata: String?
     var isCompact = false
     var showsImage = true
+    /// Reserves space for caller-owned trailing controls without covering the caption.
+    var captionTrailingInset: CGFloat = 0
     @ViewBuilder var thumbnail: Thumbnail
 
     var body: some View {
@@ -40,6 +42,7 @@ struct AppNewsPreview<Thumbnail: View>: View {
             }
         }
         .multilineTextAlignment(.leading)
+        .padding(.trailing, captionTrailingInset)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

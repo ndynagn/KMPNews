@@ -1,4 +1,4 @@
-"""Exercise the real limiter in disposable PostgreSQL, including concurrent sessions.
+"""Exercise migrations, favorites isolation and the limiter in disposable PostgreSQL.
 
 Requires Docker. No host ports or persistent volumes, and no provider requests.
 """
@@ -32,8 +32,10 @@ try:
             break
         time.sleep(0.5)
     sql("create role anon; create role authenticated; create role service_role bypassrls;")
+    sql((root / "tests/auth_fixture.sql").read_text())
     for migration in sorted((root / "migrations").glob("*.sql")):
         sql(migration.read_text())
+    sql((root / "tests/favorites.sql").read_text())
     sql((root / "tests/budget.sql").read_text())
     with ThreadPoolExecutor(max_workers=30) as pool:
         results = list(
@@ -56,6 +58,6 @@ try:
                 pass
             else:
                 raise AssertionError(f"Unexpected access for {role}")
-    print("PASS: rolling windows, role isolation, 40 concurrent calls / exactly 25 reservations")
+    print("PASS: favorites isolation, rolling windows, role isolation, 40 calls / exactly 25 reservations")
 finally:
     subprocess.run(["docker", "stop", container], check=True, stdout=subprocess.DEVNULL)
