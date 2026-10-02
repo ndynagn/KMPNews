@@ -1,4 +1,4 @@
-package com.ndynagn.kmp.news.feature.feed.data.remote
+package com.ndynagn.kmp.news.data.news
 
 import com.ndynagn.kmp.news.feature.feed.domain.Article
 import kotlin.time.Instant

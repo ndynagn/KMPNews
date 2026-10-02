@@ -35,17 +35,21 @@ internal class CachedFavoritesRepository(
 
     override suspend fun membership(articleIds: List<String>): FavoritesMembershipResult {
         val ids = articleIds.distinct()
-        if (ids.size > 200 || ids.any(String::isEmpty)) {
+        if (ids.any(String::isEmpty)) {
             return FavoritesMembershipResult.Failed(FavoritesFailure.INVALID_INPUT)
         }
         val account = sessions.account.value
             ?: return FavoritesMembershipResult.Failed(FavoritesFailure.AUTH_REQUIRED)
         if (ids.isEmpty()) return FavoritesMembershipResult.Snapshot(emptySet())
 
-        return when (val result = authorized(account) { remote.membership(it, ids) }) {
-            is FavoritesResponse.Success -> FavoritesMembershipResult.Snapshot(result.value)
-            is FavoritesResponse.Failed -> FavoritesMembershipResult.Failed(result.failure)
+        val saved = mutableSetOf<String>()
+        for (batch in ids.chunked(200)) {
+            when (val result = authorized(account) { remote.membership(it, batch) }) {
+                is FavoritesResponse.Success -> saved.addAll(result.value)
+                is FavoritesResponse.Failed -> return FavoritesMembershipResult.Failed(result.failure)
+            }
         }
+        return FavoritesMembershipResult.Snapshot(saved)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

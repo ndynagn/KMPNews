@@ -55,14 +55,59 @@ class FavoritesRepositoryTest {
     }
 
     @Test
-    fun membershipRejectsOversizedRequestsWithoutTransport() = runTest {
+    fun membershipDeduplicatesAndBatchesBeyond200Ids() = runTest {
         val remote = FakeFavoritesRemote()
         val repository = CachedFavoritesRepository(FakeAccountAccess(), FakeFavoritesStore(), remote)
         assertEquals(
-            FavoritesMembershipResult.Failed(FavoritesFailure.INVALID_INPUT),
-            repository.membership((0..200).map { "id-$it" }),
+            FavoritesMembershipResult.Snapshot(emptySet()),
+            repository.membership((0..400).map { "id-$it" } + "id-0"),
         )
-        assertEquals(0, remote.requests)
+        assertEquals(listOf(200, 200, 1), remote.membershipBatches.map { it.size })
+        assertEquals(3, remote.requests)
+    }
+
+    @Test
+    fun membershipDiscardsEarlierBatchesWhenAccountChangesOrLaterBatchFails() = runTest {
+        val ids = (0..400).map { "id-$it" }
+        for (changesAccount in listOf(false, true)) {
+            val sessions = FakeAccountAccess()
+            val remote = FakeFavoritesRemote().apply {
+                page = FavoritesPage(listOf(favorite("id-0")), null)
+                onMembership = {
+                    if (changesAccount) {
+                        sessions.account.value = AccountIdentity("other", 2)
+                    } else {
+                        failure = FavoritesFailure.NETWORK
+                    }
+                }
+            }
+            val repository = CachedFavoritesRepository(sessions, FakeFavoritesStore(), remote)
+
+            val result = repository.membership(ids)
+
+            assertEquals(
+                FavoritesMembershipResult.Failed(
+                    if (changesAccount) FavoritesFailure.SESSION_CHANGED else FavoritesFailure.NETWORK,
+                ),
+                result,
+            )
+        }
+    }
+
+    @Test
+    fun membershipCancellationStopsRemainingBatchesWithoutReturningPartialResults() = runTest {
+        val remote = FakeFavoritesRemote().apply {
+            onMembership = { gate = CompletableDeferred() }
+        }
+        val repository = CachedFavoritesRepository(FakeAccountAccess(), FakeFavoritesStore(), remote)
+        val pending = async { repository.membership((0..400).map { "id-$it" }) }
+        runCurrent()
+
+        pending.cancelAndJoin()
+
+        assertTrue(pending.isCancelled)
+        assertEquals(2, remote.requests)
+        assertEquals(listOf(200), remote.membershipBatches.map { it.size })
     }
 
     @Test
@@ -269,7 +314,11 @@ private class FakeFavoritesStore : FavoritesStore {
 }
 
 private class FakeFavoritesRemote : FavoritesRemoteSource {
+    val membershipBatches = mutableListOf<List<String>>()
+    var onMembership: (() -> Unit)? = null
     override suspend fun membership(credentials: AccountCredentials, articleIds: List<String>) = result(credentials) {
+        membershipBatches += articleIds
+        onMembership?.invoke()
         page.entries.map { it.articleId }.filter { it in articleIds }.toSet()
     }
 

@@ -1,4 +1,4 @@
-package com.ndynagn.kmp.news.feature.feed.data.remote
+package com.ndynagn.kmp.news.data.news
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

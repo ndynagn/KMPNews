@@ -41,7 +41,7 @@ sealed interface FavoritesUpdateResult {
     data class Failed(val failure: FavoritesFailure, val remoteMayHaveChanged: Boolean = false) : FavoritesUpdateResult
 }
 
-/** Membership for a bounded set of feed IDs, independent of the loaded favorites page. */
+/** Membership for requested article IDs, independent of the loaded favorites page. */
 sealed interface FavoritesMembershipResult {
     data class Snapshot(val articleIds: Set<String>) : FavoritesMembershipResult
     data class Failed(val failure: FavoritesFailure) : FavoritesMembershipResult
@@ -54,7 +54,11 @@ sealed interface FavoritesMembershipResult {
  * Logout/account changes hide the previous cache and invalidate its pending commits.
  */
 interface FavoritesRepository {
-    /** Resolves up to 200 distinct IDs on the server; never treats a failed lookup as an empty set. */
+    /**
+     * Deduplicates IDs and reads batches of at most 200 under one captured account identity.
+     * Failure, cancellation or account change discards all batches; no partial snapshot is returned.
+     * Concurrent server edits across batches are not an atomic snapshot. Empty IDs are invalid.
+     */
     suspend fun membership(articleIds: List<String>): FavoritesMembershipResult
 
     /** Observes only local data and account changes; never starts a network request. */
