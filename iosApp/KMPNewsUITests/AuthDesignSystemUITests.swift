@@ -14,7 +14,7 @@ final class AuthDesignSystemUITests: XCTestCase {
         app.secureTextFields["auth.password"].tap()
         app.secureTextFields["auth.password"].typeText("x")
         XCTAssertEqual(app.secureTextFields["auth.repeatPassword"].value as? String, "Повторите пароль")
-        capture(app, "auth-password-independent-fields")
+        capture("auth-password-independent-fields")
     }
 
     @MainActor
@@ -26,29 +26,29 @@ final class AuthDesignSystemUITests: XCTestCase {
         let register = app.buttons["auth.register"]
         XCTAssertEqual(register.frame.minY - submit.frame.maxY, 12, accuracy: 1)
         XCTAssertGreaterThanOrEqual(app.buttons["auth.forgotPassword"].frame.height, 44)
-        capture(app, "auth-login-design-system")
+        capture("auth-login-design-system")
         submit.tap()
         XCTAssertTrue(app.staticTexts["auth.error"].waitForExistence(timeout: 3))
         XCTAssertLessThan(app.staticTexts["auth.error"].frame.maxY, app.buttons["auth.forgotPassword"].frame.minY)
-        capture(app, "auth-login-validation")
+        capture("auth-login-validation")
         app.textFields["auth.email"].tap()
         app.textFields["auth.email"].typeText("reader@example.test")
-        capture(app, "auth-email-keyboard")
+        capture("auth-email-keyboard")
         hideKeyboard(app)
         app.buttons["auth.forgotPassword"].tap()
         XCTAssertTrue(app.navigationBars["Восстановление пароля"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.textFields["auth.email"].value as? String, "reader@example.test")
-        capture(app, "auth-recovery-email")
+        capture("auth-recovery-email")
         app.buttons["auth.submit"].tap()
         XCTAssertTrue(app.textFields["auth.code"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["auth.resend"].isEnabled)
-        capture(app, "auth-recovery-code")
+        capture("auth-recovery-code")
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3))
         app.typeText("11111")
         XCTAssertEqual(app.textFields["auth.code"].value as? String, "11111")
         XCTAssertFalse(app.buttons["auth.retryCode"].exists)
         app.typeText("1")
-        capture(app, "auth-code-keyboard")
+        capture("auth-code-keyboard")
         XCTAssertFalse(app.buttons["auth.submit"].exists)
         XCTAssertTrue(app.staticTexts["auth.error"].waitForExistence(timeout: 3))
         app.textFields["auth.code"].tap()
@@ -59,7 +59,7 @@ final class AuthDesignSystemUITests: XCTestCase {
         app.typeText("x")
         XCTAssertNotEqual(app.secureTextFields["auth.password"].value as? String, "Пароль")
         XCTAssertEqual(app.secureTextFields["auth.repeatPassword"].value as? String, "Повторите пароль")
-        capture(app, "auth-recovery-new-password")
+        capture("auth-recovery-new-password")
         app.navigationBars["Новый пароль"].buttons["BackButton"].tap()
         XCTAssertTrue(app.textFields["auth.code"].exists)
         XCTAssertEqual(app.textFields["auth.code"].value as? String, "Код из письма")
@@ -71,7 +71,7 @@ final class AuthDesignSystemUITests: XCTestCase {
         app.buttons["auth.submit"].tap()
         XCTAssertTrue(app.buttons["profile.logout"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["auth.submit"].exists)
-        capture(app, "auth-recovery-profile")
+        capture("auth-recovery-profile")
         app.buttons["profile.logout"].tap()
         XCTAssertTrue(app.buttons["profile.register"].waitForExistence(timeout: 5))
         app.buttons["profile.register"].tap()
@@ -79,7 +79,7 @@ final class AuthDesignSystemUITests: XCTestCase {
         app.textFields["auth.email"].typeText("reader@example.test")
         hideKeyboard(app)
         fillPasswords(app)
-        capture(app, "auth-registration-design-system")
+        capture("auth-registration-design-system")
         app.buttons["auth.submit"].tap()
         XCTAssertTrue(app.textFields["auth.code"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["auth.resend"].isEnabled)
@@ -118,7 +118,7 @@ final class AuthDesignSystemUITests: XCTestCase {
         XCTAssertEqual(submit.value as? String, "Загрузка")
         XCTAssertEqual(submit.frame.height, frame.height, accuracy: 0.5)
         XCTAssertEqual(submit.frame.width, frame.width, accuracy: 0.5)
-        capture(app, "auth-login-loading")
+        capture("auth-login-loading")
         app.buttons["auth.close"].tap()
         XCTAssertTrue(app.buttons["profile.login"].waitForExistence(timeout: 3))
         openLogin(app)
@@ -150,7 +150,7 @@ final class AuthDesignSystemUITests: XCTestCase {
         expectation(for: countdown, evaluatedWith: app.buttons["auth.resend"])
         waitForExpectations(timeout: 3)
         XCTAssertFalse(app.staticTexts["auth.countdown"].exists)
-        capture(app, "auth-resend-button-countdown")
+        capture("auth-resend-button-countdown")
         XCTAssertFalse(app.buttons["auth.resend"].isEnabled)
         app.navigationBars["Подтвердить email"].buttons["BackButton"].tap()
         app.buttons["auth.forgotPassword"].tap()
@@ -163,7 +163,7 @@ final class AuthDesignSystemUITests: XCTestCase {
         app.buttons["auth.submit"].tap()
         XCTAssertTrue(app.buttons["auth.returnToLogin"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["auth.error"].exists)
-        capture(app, "auth-password-changed-storage-error")
+        capture("auth-password-changed-storage-error")
         app.buttons["auth.returnToLogin"].tap()
         XCTAssertTrue(app.buttons["auth.close"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.textFields["auth.email"].value as? String, "reader@example.test")
@@ -187,7 +187,7 @@ final class AuthDesignSystemUITests: XCTestCase {
         let register = app.buttons["auth.register"]
         for _ in 0..<6 where !register.isHittable { app.swipeUp() }
         XCTAssertTrue(register.isHittable)
-        capture(app, "auth-login-large-text")
+        capture("auth-login-large-text")
         register.tap()
         XCTAssertTrue(app.navigationBars["Регистрация"].waitForExistence(timeout: 3))
         app.navigationBars["Регистрация"].buttons["BackButton"].tap()
@@ -214,7 +214,7 @@ final class AuthDesignSystemUITests: XCTestCase {
             let field = app.secureTextFields[identifier]
             field.tap()
             field.typeText("fixture-password")
-            if identifier == "auth.password" { capture(app, "auth-password-keyboard") }
+            if identifier == "auth.password" { capture("auth-password-keyboard") }
             hideKeyboard(app)
         }
     }
@@ -222,12 +222,5 @@ final class AuthDesignSystemUITests: XCTestCase {
     @MainActor private func hideKeyboard(_ app: XCUIApplication) {
         let hide = app.buttons["Скрыть клавиатуру"].firstMatch
         if hide.waitForExistence(timeout: 2), hide.isHittable { hide.tap() }
-    }
-
-    @MainActor private func capture(_ app: XCUIApplication, _ name: String) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
     }
 }

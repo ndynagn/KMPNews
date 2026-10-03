@@ -26,6 +26,7 @@ internal class ProfileViewModel(private val authRepository: AuthRepository) : Vi
 
     fun restore() {
         if (operation?.isActive == true) return
+
         operation = viewModelScope.launch {
             mutableBusy.value = true
             try {
@@ -38,6 +39,7 @@ internal class ProfileViewModel(private val authRepository: AuthRepository) : Vi
 
     fun signOut() {
         if (mutableBusy.value) return
+
         operation?.cancel()
         operation = viewModelScope.launch {
             mutableBusy.value = true

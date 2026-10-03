@@ -1,16 +1,5 @@
 import Foundation
 
-struct FeedArticle: Identifiable, Equatable {
-    let id: String
-    let title: String?
-    let summary: String?
-    let imageURL: URL?
-    let source: String?
-    let publishedAt: Date?
-    var articleURL: String? = nil
-    var sourceID: String? = nil
-}
-
 struct FeedSnapshotState: Equatable {
     let articles: [FeedArticle]
     let hasMore: Bool

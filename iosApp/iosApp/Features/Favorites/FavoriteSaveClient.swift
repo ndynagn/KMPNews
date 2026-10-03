@@ -1,6 +1,6 @@
 import Foundation
 
-enum FavoriteSaveResult { case saved, authenticationRequired, failed }
+enum FavoriteSaveResult { case saved, authenticationRequired, busy, failed }
 
 struct FavoritesSnapshot: Equatable {
     let articles: [FeedArticle]

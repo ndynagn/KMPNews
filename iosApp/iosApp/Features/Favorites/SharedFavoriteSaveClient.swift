@@ -16,16 +16,8 @@ final class SharedFavoriteSaveClient: FavoriteSaveClient {
                         continuation.yield(
                             .snapshot(
                                 FavoritesSnapshot(
-                                    articles: snapshot.articles.map { item in
-                                        let article = item.article
-                                        return FeedArticle(
-                                            id: article.id, title: article.title, summary: article.summary,
-                                            imageURL: article.imageUrl.flatMap(URL.init(string:)),
-                                            source: article.sourceName,
-                                            publishedAt: article.publishedAtEpochMilliseconds.map {
-                                                Date(timeIntervalSince1970: Double($0.int64Value) / 1_000)
-                                            }, articleURL: article.url, sourceID: article.sourceId)
-                                    }, hasMore: snapshot.hasMore, isInitialized: snapshot.isInitialized)))
+                                    articles: snapshot.articles.map { FeedArticle($0.article) },
+                                    hasMore: snapshot.hasMore, isInitialized: snapshot.isInitialized)))
                     } else if value is FavoritesReadResultSignedOut {
                         continuation.yield(.signedOut)
                     } else {
@@ -64,6 +56,7 @@ final class SharedFavoriteSaveClient: FavoriteSaveClient {
     }
 
     private func map(_ result: any FavoritesUpdateResult) -> FavoriteSaveResult {
+        if result is FavoritesUpdateResultAlreadyRunning { return .busy }
         if result is FavoritesUpdateResultUpdated || result is FavoritesUpdateResultNoMorePages { return .saved }
         if let failure = result as? FavoritesUpdateResultFailed, failure.failure == .authRequired {
             return .authenticationRequired

@@ -9,7 +9,7 @@ final class FavoriteSignInUITests: XCTestCase {
         save.tap()
         let login = app.buttons["favorites.login"]
         XCTAssertTrue(login.waitForExistence(timeout: 5))
-        capture(app, "favorite-invitation-light")
+        capture("favorite-invitation-light")
         app.swipeDown()
         XCTAssertTrue(login.exists, "The invitation must not dismiss with a swipe")
         app.buttons["favorites.close"].tap()
@@ -18,7 +18,7 @@ final class FavoriteSignInUITests: XCTestCase {
         login.tap()
         XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 5))
         verifyAuthCannotSwipeClosed(app)
-        capture(app, "favorite-large-auth-sheet")
+        capture("favorite-large-auth-sheet")
         app.buttons["auth.close"].tap()
         XCTAssertTrue(save.waitForExistence(timeout: 5))
         XCTAssertEqual(save.label, "Добавить в избранное")
@@ -34,11 +34,11 @@ final class FavoriteSignInUITests: XCTestCase {
         app.tabBars.buttons["Профиль"].tap()
         let login = app.buttons["profile.login"]
         XCTAssertTrue(login.waitForExistence(timeout: 5))
-        capture(app, "profile-registration-prompt")
+        capture("profile-registration-prompt")
         login.tap()
         XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 5))
         verifyAuthCannotSwipeClosed(app)
-        capture(app, "profile-large-auth-sheet")
+        capture("profile-large-auth-sheet")
         app.buttons["auth.register"].tap()
         XCTAssertTrue(app.secureTextFields["auth.repeatPassword"].waitForExistence(timeout: 5))
         verifyAuthCannotSwipeClosed(app)
@@ -70,19 +70,19 @@ final class FavoriteSignInUITests: XCTestCase {
         ).firstMatch
         XCTAssertTrue(remove.waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Новость добавлена в избранное"].waitForExistence(timeout: 5))
-        capture(app, "favorite-filled-star")
+        capture("favorite-filled-star")
         app.tabBars.buttons["Избранное"].tap()
         XCTAssertTrue(app.otherElements["feed.article.fixture-0"].waitForExistence(timeout: 5))
-        capture(app, "favorites-list-content")
+        capture("favorites-list-content")
         app.buttons["favorites.save.fixture-0"].tap()
         XCTAssertTrue(app.otherElements["feed.article.fixture-0"].exists)
         XCTAssertEqual(app.buttons["favorites.save.fixture-0"].label, "Добавить в избранное")
-        capture(app, "favorite-removed-retained")
+        capture("favorite-removed-retained")
         let list = app.scrollViews["favorites.list"]
         list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).press(
             forDuration: 0.1, thenDragTo: list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85)))
         XCTAssertTrue(app.staticTexts["Пока нет избранных новостей"].waitForExistence(timeout: 5))
-        capture(app, "favorites-list-empty")
+        capture("favorites-list-empty")
         app.tabBars.buttons["Новости"].tap()
         XCTAssertEqual(star.label, "Добавить в избранное")
         star.tap()
@@ -108,9 +108,9 @@ final class FavoriteSignInUITests: XCTestCase {
 
         XCTAssertEqual(star.label, "Удалить из избранного")
         XCTAssertFalse(app.staticTexts["Новость добавлена в избранное"].exists)
-        capture(app, "favorite-optimistic-star")
+        capture("favorite-optimistic-star")
         XCTAssertTrue(app.staticTexts["Новость добавлена в избранное"].waitForExistence(timeout: 10))
-        capture(app, "favorite-confirmed-notice")
+        capture("favorite-confirmed-notice")
     }
 
     @MainActor
@@ -131,7 +131,7 @@ final class FavoriteSignInUITests: XCTestCase {
         XCTAssertTrue(remove.exists)
         app.tabBars.buttons["Избранное"].tap()
         XCTAssertTrue(app.otherElements["feed.article.fixture-0"].waitForExistence(timeout: 5))
-        capture(app, "favorites-retained-after-delete-error")
+        capture("favorites-retained-after-delete-error")
     }
 
     @MainActor
@@ -146,7 +146,7 @@ final class FavoriteSignInUITests: XCTestCase {
             NSPredicate(format: "label == %@", "Удалить из избранного")
         ).firstMatch
         XCTAssertTrue(saved.waitForExistence(timeout: 10))
-        capture(app, "favorite-saved-after-login")
+        capture("favorite-saved-after-login")
     }
 
     @MainActor
@@ -159,7 +159,7 @@ final class FavoriteSignInUITests: XCTestCase {
         signIn(app)
         let retry = app.alerts.buttons["Повторить"]
         XCTAssertTrue(retry.waitForExistence(timeout: 10))
-        capture(app, "favorite-save-error")
+        capture("favorite-save-error")
         retry.tap()
         let saved = app.buttons.matching(identifier: "favorites.save.fixture-0").matching(
             NSPredicate(format: "label == %@", "Удалить из избранного")
@@ -191,7 +191,7 @@ final class FavoriteSignInUITests: XCTestCase {
             NSPredicate(format: "label == %@", "Удалить из избранного")
         ).firstMatch
         XCTAssertTrue(saved.waitForExistence(timeout: 10))
-        capture(app, "favorite-saved-after-registration")
+        capture("favorite-saved-after-registration")
     }
 
     @MainActor
@@ -215,7 +215,7 @@ final class FavoriteSignInUITests: XCTestCase {
         XCTAssertTrue(app.buttons["favorites.close"].waitForExistence(timeout: 5))
         app.swipeUp()
         XCTAssertTrue(app.buttons["favorites.register"].isHittable)
-        capture(app, "favorite-invitation-large-text")
+        capture("favorite-invitation-large-text")
     }
 
     @MainActor
@@ -224,13 +224,5 @@ final class FavoriteSignInUITests: XCTestCase {
         app.launchArguments = ["--feed-ui-fixture", "--auth-ui-fixture", "-AppleLanguages", "(ru)"] + extra
         app.launch()
         return app
-    }
-
-    @MainActor
-    private func capture(_ app: XCUIApplication, _ name: String) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
     }
 }

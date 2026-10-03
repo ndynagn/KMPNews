@@ -10,11 +10,14 @@ object SearchQuery {
         val query = input.trim(::isQueryWhitespace)
         var count = 0
         var index = 0
+
         while (index < query.length) {
             val char = query[index++]
+
             if (char.isHighSurrogate() && index < query.length && query[index].isLowSurrogate()) index++
             count++
         }
+
         return query.takeIf { count in 1..100 }
     }
 

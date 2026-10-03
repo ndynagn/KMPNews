@@ -4,20 +4,23 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @State private var selected = 0
-    let homeViewModel: HomeViewModel
+    @State private var selected: HomeSection = .news
+    @State private var previousSection: HomeSection = .news
+    @State private var homeViewModel: HomeViewModel
     private let authClient: any AuthClient
     @State private var profileViewModel: ProfileViewModel
     @State private var authViewModel: AuthViewModel?
     @State private var favoriteAuthViewModel: AuthViewModel?
     @State private var dismissingAuthViewModel: AuthViewModel?
     @State private var scrollID: String?
+    @State private var searchScrollID: String?
     #if DEBUG
         @State private var showsComponentCatalog = false
     #endif
 
-    init(homeViewModel: HomeViewModel) {
-        self.homeViewModel = homeViewModel
+    init(services: AppServices) {
+        let homeViewModel = HomeViewModel(services: services)
+        _homeViewModel = State(initialValue: homeViewModel)
         let client: any AuthClient
         #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--auth-ui-fixture") {
@@ -33,7 +36,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView(selection: $selected) {
+        HomeTabs(selection: selection, usesSearchRole: usesSearchRole) {
             NavigationStack {
                 Group {
                     if let feedViewModel = homeViewModel.feedViewModel {
@@ -50,24 +53,22 @@ struct ContentView: View {
                                 }
                             })
                     } else if homeViewModel.storageFailed {
-                        VStack {
-                            AppStatusView(
-                                title: "feed.unavailableTitle", systemImage: "exclamationmark.circle",
-                                message: "feed.storageError")
-                            AppActionButton(title: "feed.retry") {
-                                homeViewModel.prepare()
-                                updateActivity()
+                        AppScreenState {
+                            AppErrorView(title: "feed.unavailableTitle", message: "feed.storageError") {
+                                AppActionButton(title: "feed.retry", emphasis: .text) {
+                                    homeViewModel.prepare()
+                                    updateActivity()
+                                }
                             }
                         }
-                        .padding(16)
                     } else {
-                        ProgressView("feed.loading")
+                        AppScreenState { ProgressView("feed.loading") }
                     }
                 }
                 .navigationTitle("home.news")
                 .navigationBarTitleDisplayMode(.large)
             }
-            .tabItem { Label("home.news", systemImage: "newspaper") }.tag(0)
+        } favorites: {
             NavigationStack {
                 Group {
                     if let list = homeViewModel.favoritesViewModel, let actions = homeViewModel.favoriteSaveViewModel {
@@ -75,12 +76,12 @@ struct ContentView: View {
                             viewModel: list, actions: actions, profile: profileViewModel.state,
                             onLogin: { presentAuth(.signIn) }, onRegister: { presentAuth(.register) })
                     } else {
-                        ProgressView("feed.loading")
+                        AppScreenState { ProgressView("feed.loading") }
                     }
                 }
                 .navigationTitle("home.favorites").navigationBarTitleDisplayMode(.large)
             }
-            .tabItem { Label("home.favorites", systemImage: "star") }.tag(1)
+        } profile: {
             NavigationStack {
                 ProfileScreen(
                     state: profileViewModel.state, notice: profileViewModel.notice,
@@ -101,7 +102,27 @@ struct ContentView: View {
                     }
                 #endif
             }
-            .tabItem { Label("home.profile", systemImage: "person") }.tag(2)
+        } search: {
+            SearchNavigationDestination(
+                query: Binding(
+                    get: { homeViewModel.searchViewModel.state.query },
+                    set: { homeViewModel.searchViewModel.onEvent(.queryChanged($0)) }),
+                isSelected: selected == .search, usesSearchRole: usesSearchRole,
+                onClose: { selected = previousSection },
+                onSubmit: { homeViewModel.searchViewModel.onEvent(.submit) }
+            ) {
+                SearchScreen(
+                    viewModel: homeViewModel.searchViewModel, scrollID: $searchScrollID,
+                    savedIDs: homeViewModel.favoriteSaveViewModel?.savedIDs ?? [],
+                    canSave: homeViewModel.favoriteSaveViewModel?.savingID == nil
+                        && homeViewModel.favoritesViewModel?.isLoading != true,
+                    onSave: { article in
+                        guard let actions = homeViewModel.favoriteSaveViewModel else { return }
+                        actions.save(
+                            article, profile: profileViewModel.state,
+                            isSaved: actions.savedIDs.contains(article.id))
+                    })
+            }
         }
         .sheet(item: $authViewModel, onDismiss: finishAuthDismissal) { model in
             AuthScreen(viewModel: model) {
@@ -183,15 +204,37 @@ struct ContentView: View {
         }
         .onChange(of: selected) { _, _ in updateActivity() }
         .onChange(of: homeViewModel.feedViewModel?.state.snapshot?.articles.map(\.id)) { _, _ in updateMembership() }
+        .onChange(of: homeViewModel.searchViewModel.state.articles.map(\.id)) { _, _ in updateMembership() }
+        .onChange(of: homeViewModel.favoriteSaveViewModel?.savingID) { _, id in
+            if id == nil { updateMembership() }
+        }
+        .onChange(of: homeViewModel.favoritesViewModel?.isLoading) { _, loading in
+            if loading == false { updateMembership() }
+        }
         .onChange(of: scenePhase) { _, phase in
             updateActivity()
             if phase == .active { profileViewModel.restore() }
         }
         .onDisappear {
             homeViewModel.feedViewModel?.deactivate()
+            homeViewModel.searchViewModel.onEvent(.deactivate)
             homeViewModel.favoriteSaveViewModel?.stop()
             homeViewModel.favoritesViewModel?.stop()
         }
+    }
+
+    private var usesSearchRole: Bool {
+        if #available(iOS 26, *) { return true }
+        return false
+    }
+
+    private var selection: Binding<HomeSection> {
+        Binding(
+            get: { selected },
+            set: { value in
+                if value == .search, selected != .search { previousSection = selected }
+                selected = value
+            })
     }
 
     private func presentAuth(_ step: AuthStep) {
@@ -217,12 +260,15 @@ struct ContentView: View {
     }
 
     private func updateActivity() {
-        if selected == 0 && scenePhase == .active {
+        if selected == .news && scenePhase == .active {
             homeViewModel.feedViewModel?.activate()
             updateMembership()
         } else {
             homeViewModel.feedViewModel?.deactivate()
         }
+        homeViewModel.searchViewModel.onEvent(
+            selected == .search && scenePhase == .active ? .activate : .deactivate)
+        if selected == .search && scenePhase == .active { updateMembership() }
     }
 
     private var favoriteAddedNotice: Binding<Bool> {
@@ -234,7 +280,9 @@ struct ContentView: View {
     }
 
     private func updateMembership() {
-        homeViewModel.favoriteSaveViewModel?.resolveMembership(
-            homeViewModel.feedViewModel?.state.snapshot?.articles.map(\.id) ?? [], profile: profileViewModel.state)
+        let ids =
+            (homeViewModel.feedViewModel?.state.snapshot?.articles.map(\.id) ?? [])
+            + homeViewModel.searchViewModel.state.articles.map(\.id)
+        homeViewModel.favoriteSaveViewModel?.resolveMembership(ids, profile: profileViewModel.state)
     }
 }

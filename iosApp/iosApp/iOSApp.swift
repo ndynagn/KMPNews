@@ -2,11 +2,19 @@ import SwiftUI
 
 @main
 struct iOSApp: App {
-    @State private var homeViewModel = HomeViewModel()
+    @State private var services = AppServices()
 
     var body: some Scene {
         WindowGroup {
-            ContentView(homeViewModel: homeViewModel)
+            #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--search-navigation-prototype") {
+                    SearchNavigationPrototype()
+                } else {
+                    ContentView(services: services)
+                }
+            #else
+                ContentView(services: services)
+            #endif
         }
     }
 }

@@ -10,21 +10,34 @@ struct ProfileScreen: View {
     let onLogout: () -> Void
 
     var body: some View {
+        switch state {
+        case .restoring:
+            AppScreenState { ProgressView("common.loading") }
+        case .unavailable(let problem):
+            AppScreenState {
+                AppErrorView(title: "auth.profileUnavailable", message: LocalizedStringKey(problem.rawValue)) {
+                    AppActionButton(title: "auth.retry", emphasis: .text, action: onRetry)
+                    AppActionButton(title: "auth.logout", emphasis: .text, isBusy: isBusy, action: onLogout)
+                        .accessibilityIdentifier("profile.logout")
+                }
+            }
+            .disabled(isBusy)
+        case .guest, .authenticated:
+            profileContent
+        }
+    }
+
+    private var profileContent: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 16) {
                     VStack(spacing: 12) {
                         switch state {
-                        case .restoring: ProgressView("common.loading")
                         case .guest:
                             Text("profile.welcome").font(.largeTitle.bold())
                             Text("profile.guest_hint").foregroundStyle(.secondary)
                         case .authenticated(let email): Text(email).font(.title2)
-                        case .unavailable(let problem):
-                            AppStatusView(
-                                title: "auth.profileUnavailable",
-                                systemImage: "person.crop.circle.badge.exclamationmark",
-                                message: LocalizedStringKey(problem.rawValue))
+                        case .restoring, .unavailable: EmptyView()
                         }
                     }
                     .multilineTextAlignment(.center)
@@ -40,10 +53,7 @@ struct ProfileScreen: View {
                     case .authenticated:
                         AppActionButton(title: "auth.logout", emphasis: .secondary, isBusy: isBusy, action: onLogout)
                             .accessibilityIdentifier("profile.logout")
-                    case .unavailable:
-                        AppActionButton(title: "auth.retry", action: onRetry)
-                        AppActionButton(title: "auth.logout", emphasis: .text, isBusy: isBusy, action: onLogout)
-                    case .restoring: EmptyView()
+                    case .restoring, .unavailable: EmptyView()
                     }
                 }
                 .disabled(isBusy).padding(24)

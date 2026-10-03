@@ -17,16 +17,7 @@ final class SharedFeedClient: FeedClient {
                 for await value in newsRepository.observeFeed() {
                     if Task.isCancelled { break }
                     if let read = value as? FeedReadResultSnapshot {
-                        let articles = read.feed.articles.map { article in
-                            FeedArticle(
-                                id: article.id, title: article.title, summary: article.summary,
-                                imageURL: article.imageUrl.flatMap(URL.init(string:)),
-                                source: article.sourceName,
-                                publishedAt: article.publishedAtEpochMilliseconds.map {
-                                    Date(timeIntervalSince1970: Double($0.int64Value) / 1_000)
-                                }, articleURL: article.url, sourceID: article.sourceId
-                            )
-                        }
+                        let articles = read.feed.articles.map(FeedArticle.init)
                         continuation.yield(
                             .snapshot(
                                 FeedSnapshotState(

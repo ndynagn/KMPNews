@@ -10,62 +10,16 @@ struct FavoritesScreen: View {
     @State private var visibleIDs: Set<String> = []
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                if case .guest = profile {
-                    AppStatusView(
-                        title: "favorites.guestTitle", systemImage: "star", message: "favorites.invitation.message")
-                    AppActionButton(title: "auth.login", action: onLogin)
-                    AppActionButton(title: "auth.registration", emphasis: .secondary, action: onRegister)
-                } else if case .restoring = profile {
-                    ProgressView("feed.loading")
-                } else if case .unavailable = profile {
-                    EmptyView()
-                } else {
-                    ForEach(viewModel.articles) { article in
-                        FeedCard(
-                            article: article, isSaved: isSaved(article),
-                            canSave: actions.savingID == nil && !viewModel.isLoading,
-                            onSave: { actions.save(article, profile: profile, isSaved: isSaved(article)) }
-                        )
-                        .id(article.id)
-                        .onAppear {
-                            visibleIDs.insert(article.id)
-                            loadMoreIfNeeded()
-                        }
-                        .onDisappear { visibleIDs.remove(article.id) }
-                    }
-                    if viewModel.isLoading { ProgressView("feed.loading") }
-                    if viewModel.hasError, !showsFullScreenError {
-                        AppStatusView(
-                            title: "favorites.loadError", systemImage: "exclamationmark.circle", isCompact: true)
-                        AppActionButton(title: "feed.retry", isEnabled: actions.savingID == nil) { viewModel.retry() }
-                            .accessibilityIdentifier("favorites.retry")
-                    }
-                }
+        Group {
+            if case .guest = profile {
+                guestContent
+            } else if showsScreenState {
+                AppScreenState { screenState }
+            } else {
+                articleList
             }
-            .scrollTargetLayout()
-            .padding(16)
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .overlay {
-            if showsFullScreenError {
-                VStack(spacing: 16) {
-                    AppStatusView(title: "favorites.loadError", systemImage: "exclamationmark.circle")
-                        .fixedSize(horizontal: false, vertical: true)
-                    if case .authenticated = profile {
-                        AppActionButton(title: "feed.retry", isEnabled: actions.savingID == nil) { viewModel.retry() }
-                            .accessibilityIdentifier("favorites.retry")
-                    }
-                }
-                .padding(16)
-            } else if showsEmptyState {
-                AppStatusView(title: "favorites.empty", systemImage: "star", message: "favorites.emptyMessage")
-                    .allowsHitTesting(false)
-            }
-        }
-        .scrollPosition(id: $scrollID)
-        .scrollBounceBehavior(.always)
         .refreshable {
             if actions.savingID == nil { await viewModel.refresh() }
         }
@@ -73,10 +27,85 @@ struct FavoritesScreen: View {
             viewModel.accountChanged(profile)
             if actions.savingID == nil { await viewModel.refresh() }
         }
-        .accessibilityIdentifier("favorites.list")
         .onChange(of: viewModel.isLoading) { _, loading in if !loading { loadMoreIfNeeded() } }
         .onChange(of: actions.savingID) { _, id in if id == nil { loadMoreIfNeeded() } }
         .onChange(of: viewModel.snapshot?.articles.map(\.id)) { _, _ in loadMoreIfNeeded() }
+    }
+
+    private var guestContent: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 16) {
+                    AppStatusView(
+                        title: "favorites.guestTitle", systemImage: "star", message: "favorites.invitation.message"
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.vertical, 32)
+                    AppActionButton(title: "auth.login", action: onLogin)
+                        .accessibilityIdentifier("favorites.guest.login")
+                    RegistrationPrompt(action: onRegister)
+                        .accessibilityIdentifier("favorites.guest.register")
+                }
+                .padding(24)
+                .frame(minHeight: geometry.size.height)
+            }
+            .accessibilityIdentifier("favorites.guest")
+        }
+    }
+
+    private var articleList: some View {
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                ForEach(viewModel.articles) { article in
+                    FeedCard(
+                        article: article, isSaved: isSaved(article),
+                        canSave: actions.savingID == nil && !viewModel.isLoading,
+                        onSave: { actions.save(article, profile: profile, isSaved: isSaved(article)) }
+                    )
+                    .id(article.id)
+                    .onAppear {
+                        visibleIDs.insert(article.id)
+                        loadMoreIfNeeded()
+                    }
+                    .onDisappear { visibleIDs.remove(article.id) }
+                }
+                if viewModel.isLoading { ProgressView("feed.loading") }
+                if viewModel.hasError, !showsFullScreenError {
+                    AppStatusView(
+                        title: "favorites.loadError", systemImage: "exclamationmark.circle", isCompact: true)
+                    AppActionButton(title: "feed.retry", isEnabled: actions.savingID == nil) { viewModel.retry() }
+                        .accessibilityIdentifier("favorites.retry")
+                }
+            }
+            .scrollTargetLayout()
+            .padding(16)
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
+        .scrollPosition(id: $scrollID)
+        .scrollBounceBehavior(.always)
+        .accessibilityIdentifier("favorites.list")
+    }
+
+    private var showsScreenState: Bool {
+        if case .authenticated = profile { return viewModel.articles.isEmpty }
+        return true
+    }
+
+    @ViewBuilder private var screenState: some View {
+        if showsFullScreenError {
+            AppErrorView(title: "favorites.loadError") {
+                if case .authenticated = profile {
+                    AppActionButton(title: "feed.retry", emphasis: .text, isEnabled: actions.savingID == nil) {
+                        viewModel.retry()
+                    }
+                    .accessibilityIdentifier("favorites.retry")
+                }
+            }
+        } else if showsEmptyState {
+            AppStatusView(title: "favorites.empty", systemImage: "star", message: "favorites.emptyMessage")
+        } else {
+            ProgressView("feed.loading")
+        }
     }
 
     private func isSaved(_ article: FeedArticle) -> Bool {

@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// Owns one add/remove intent and feed membership. Closing authentication discards the deferred save.
+/// Owns one window's add/remove intent and membership. Closing authentication discards the deferred save.
 @MainActor @Observable
 final class FavoriteSaveViewModel {
     enum Presentation { case invitation, awaitingAuthentication(AuthStep), authentication(AuthStep) }
@@ -100,7 +100,7 @@ final class FavoriteSaveViewModel {
         startSave()
     }
 
-    /// Resolve feed membership independently of the paginated favorites cache.
+    /// Resolve feed/search membership independently of the paginated favorites cache.
     func resolveMembership(_ ids: [String], profile: ProfileState) {
         guard savingID == nil else { return }
         membershipTask?.cancel()
@@ -231,6 +231,9 @@ final class FavoriteSaveViewModel {
             case .authenticationRequired:
                 self.pendingRemoval = false
                 self.presentation = .invitation
+            case .busy:
+                self.pendingArticle = nil
+                self.pendingRemoval = nil
             case .failed: self.hasError = true
             }
         }

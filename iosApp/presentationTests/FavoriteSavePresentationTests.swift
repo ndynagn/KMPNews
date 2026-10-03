@@ -90,6 +90,11 @@ struct FavoriteSavePresentationTests {
         precondition(!model.hasError && model.savedIDs.contains(article.id))
         precondition(model.showsAddedNotice && model.addedFeedback == feedback + 1)
 
+        client.result = .busy
+        model.save(article, profile: .authenticated(email: "reader@example.test"))
+        await settle()
+        precondition(!model.hasError && model.savingID == nil && model.savedIDs.contains(article.id))
+
         client.result = .authenticationRequired
         model.save(article, profile: .authenticated(email: "reader@example.test"))
         await settle()

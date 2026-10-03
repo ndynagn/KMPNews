@@ -109,7 +109,7 @@ final class FavoritesViewModel {
 
             self.isLoading = false
             self.request = nil
-            self.hasError = result != .saved
+            self.hasError = result != .saved && result != .busy
             self.failedAppend = append
             if result == .saved, !append { self.retainedArticles = nil }
         }

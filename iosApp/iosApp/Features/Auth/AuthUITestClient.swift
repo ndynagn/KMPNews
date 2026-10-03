@@ -8,6 +8,14 @@
         private var continuation: AsyncStream<ProfileState>.Continuation?
         private let arguments = ProcessInfo.processInfo.arguments
 
+        init() {
+            if arguments.contains("--auth-ui-profile-error") {
+                state = .unavailable(.storage)
+            } else if arguments.contains("--auth-ui-signed-in") {
+                state = .authenticated(email: "reader@example.test")
+            }
+        }
+
         func validate(_ input: AuthUiState, resend: Bool) -> String? {
             SharedAuthClient.validateInput(input, resend: resend)
         }

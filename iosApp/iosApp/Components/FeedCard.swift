@@ -6,8 +6,30 @@ struct FeedCard: View {
     let isSaved: Bool
     let canSave: Bool
     let onSave: (() -> Void)?
+    var onOpen: (() -> Void)? = nil
 
     var body: some View {
+        Group {
+            if let onOpen {
+                Button(action: onOpen) { preview }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("article.open.\(article.id)")
+            } else {
+                preview
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if let onSave {
+                favoriteButton(action: onSave)
+                    .accessibilityIdentifier("favorites.save.\(article.id)")
+                    .padding(8)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("feed.article.\(article.id)")
+    }
+
+    private var preview: some View {
         AppNewsPreview(
             title: article.title ?? String(localized: "feed.noTitle"), metadata: metadata,
             showsImage: article.imageURL != nil,
@@ -24,21 +46,13 @@ struct FeedCard: View {
                 .accessibilityHidden(true)
             }
         }
-        .overlay(alignment: .topTrailing) {
-            if let onSave {
-                favoriteButton(action: onSave)
-                    .accessibilityIdentifier("favorites.save.\(article.id)")
-                    .padding(8)
-            }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("feed.article.\(article.id)")
     }
 
     @ViewBuilder
     private func favoriteButton(action: @escaping () -> Void) -> some View {
         let button = Button(action: action) {
             Image(systemName: isSaved ? "star.fill" : "star")
+                .font(.system(size: 20))
                 .frame(width: 20, height: 20)
         }
         .foregroundStyle(Color.blue)

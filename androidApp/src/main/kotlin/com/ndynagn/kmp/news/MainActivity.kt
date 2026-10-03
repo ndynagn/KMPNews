@@ -16,11 +16,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
         val newsApplication = application as NewsApplication
+
         setContent {
             var dependencies by remember {
                 mutableStateOf(runCatching { newsApplication.feedDependencies }.getOrNull())
             }
+
             MobileApp(
                 dependencies?.newsRepository,
                 dependencies?.refreshFeedIfNeeded,

@@ -179,7 +179,8 @@ private struct AuthStepScreen: View {
             focusFirstField()
         }
         .onDisappear {
-            focusedField = nil; passwordFocused = false
+            focusedField = nil
+            passwordFocused = false
         }
         .onChange(of: viewModel.state.isBusy) { _, busy in
             if !busy && isCodeStep && step == viewModel.state.step { focusedField = .code }

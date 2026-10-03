@@ -20,7 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import kmpnews.sharedui.generated.resources.Res
 import kmpnews.sharedui.generated.resources.compose_multiplatform
+import kmpnews.sharedui.generated.resources.greeting_message
+import kmpnews.sharedui.generated.resources.greeting_toggle
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 @Preview
@@ -35,7 +38,7 @@ fun App() {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
+                Text(stringResource(Res.string.greeting_toggle))
             }
             AnimatedVisibility(showContent) {
                 val greeting = remember { Greeting().greet() }
@@ -44,7 +47,7 @@ fun App() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
+                    Text(stringResource(Res.string.greeting_message, greeting))
                 }
             }
         }
