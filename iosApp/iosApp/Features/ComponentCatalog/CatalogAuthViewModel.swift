@@ -9,6 +9,7 @@
 
         enum Outcome: String, CaseIterable { case success, error, slow }
 
+        let initialStep: Step
         private(set) var path: [Step] = []
         private(set) var email = ""
         private(set) var password = ""
@@ -26,7 +27,7 @@
         private let now: () -> Date
         private let pause: (Duration) async throws -> Void
 
-        var step: Step { path.last ?? .login }
+        var step: Step { path.last ?? initialStep }
 
         var canSubmit: Bool {
             guard !isBusy else { return false }
@@ -40,9 +41,11 @@
         }
 
         init(
+            initialStep: Step = .login,
             now: @escaping () -> Date = Date.init,
             pause: @escaping (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
         ) {
+            self.initialStep = initialStep
             self.now = now
             self.pause = pause
         }

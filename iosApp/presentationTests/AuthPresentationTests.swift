@@ -119,6 +119,7 @@ private final class FakeRecoveryClient: AuthRecoveryClient {
 struct AuthPresentationTests {
     @MainActor
     static func main() async {
+        verifyPrimaryActions()
         await verifyRegistrationAndConfirmation()
         await verifyNavigationClearsSecrets()
         await verifyUnconfirmedLogin()
@@ -135,6 +136,26 @@ struct AuthPresentationTests {
                 + "duplicate suppression, cancellation, logout warning, recovery navigation, "
                 + "storage failure and late-response isolation"
         )
+    }
+
+    private static func verifyPrimaryActions() {
+        var state = AuthUiState(step: .signIn)
+        precondition(AuthPrimaryAction.resolve(state)?.symbol == "checkmark")
+        state.needsConfirmation = true
+        guard case .confirmEmail = AuthPrimaryAction.resolve(state)?.event else {
+            preconditionFailure("Unconfirmed sign-in must offer email confirmation")
+        }
+        state = AuthUiState(step: .register)
+        precondition(AuthPrimaryAction.resolve(state)?.symbol == "arrow.right")
+        state = AuthUiState(step: .recovery, resendSeconds: 30)
+        precondition(AuthPrimaryAction.resolve(state)?.isEnabled == false)
+        for step in [AuthStep.confirm, .recoveryCode] {
+            precondition(AuthPrimaryAction.resolve(AuthUiState(step: step)) == nil)
+        }
+        state = AuthUiState(step: .newPassword, passwordWasChanged: true)
+        guard case .returnToLogin = AuthPrimaryAction.resolve(state)?.event else {
+            preconditionFailure("A changed password must never be submitted again")
+        }
     }
 
     @MainActor
@@ -206,7 +227,7 @@ struct AuthPresentationTests {
         let navigation = AuthViewModel(client: client, step: .signIn)
         navigation.onEvent(.email("reader@example.test"))
         navigation.onEvent(.password("discard-on-navigation"))
-        navigation.onEvent(.register)
+        navigation.onEvent(.recovery)
 
         precondition(navigation.state.history == [.signIn] && navigation.state.password.isEmpty)
 
@@ -275,20 +296,19 @@ struct AuthPresentationTests {
         let client = FakeAuthClient()
 
         client.shouldDelayRegistration = true
-        let pendingRegistration = AuthViewModel(client: client, step: .signIn)
+        let pendingRegistration = AuthViewModel(client: client, step: .register)
         pendingRegistration.onEvent(.email("reader@example.test"))
-        pendingRegistration.onEvent(.register)
         pendingRegistration.onEvent(.password("discard-on-back"))
         pendingRegistration.onEvent(.submit)
         await settle()
 
         precondition(pendingRegistration.state.isBusy)
 
-        pendingRegistration.pop(toDepth: 0)
+        pendingRegistration.close()
         await settle()
 
         precondition(client.wasCancelled && !pendingRegistration.state.isBusy)
-        precondition(pendingRegistration.state.step == .signIn && pendingRegistration.state.history.isEmpty)
+        precondition(pendingRegistration.state.step == .register && pendingRegistration.state.history.isEmpty)
         precondition(pendingRegistration.state.password.isEmpty && !pendingRegistration.state.isComplete)
 
         pendingRegistration.close()

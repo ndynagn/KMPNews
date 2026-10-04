@@ -6,7 +6,7 @@ final class ComponentCatalogUITests: XCTestCase {
         let app = XCUIApplication()
 
         app.launch()
-        app.tabBars.buttons["Профиль"].tap()
+        selectSection("Профиль", in: app)
         XCTAssertTrue(app.buttons["kit.entry"].waitForExistence(timeout: 10))
         app.buttons["kit.entry"].tap()
         XCTAssertTrue(app.navigationBars["UI-Kit"].waitForExistence(timeout: 5))
@@ -31,7 +31,9 @@ final class ComponentCatalogUITests: XCTestCase {
         XCTAssertEqual(emailRow.frame.height, passwordRow.frame.height, accuracy: 2)
         capture("kit-login")
 
-        app.buttons["kit.register"].tap()
+        XCTAssertFalse(app.buttons["kit.register"].exists)
+        app.buttons["kit.authClose"].tap()
+        app.buttons["kit.openRegistration"].tap()
         XCTAssertTrue(app.secureTextFields["kit.repeatPassword"].waitForExistence(timeout: 3))
         capture("kit-registration")
 
@@ -39,33 +41,36 @@ final class ComponentCatalogUITests: XCTestCase {
         app.textFields["kit.email"].typeText("reader@example.test")
         app.secureTextFields["kit.password"].tap()
         app.secureTextFields["kit.password"].typeText("fixture-password")
-        app.buttons["Скрыть клавиатуру"].tap()
+        hideKeyboard(app)
         app.secureTextFields["kit.repeatPassword"].tap()
         app.secureTextFields["kit.repeatPassword"].typeText("fixture-password")
-        app.buttons["Скрыть клавиатуру"].tap()
+        hideKeyboard(app)
         app.buttons["kit.submit"].tap()
         XCTAssertTrue(app.textFields["kit.code"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["kit.submit"].exists)
+        XCTAssertFalse(app.buttons["kit.authClose"].exists)
         XCTAssertFalse(app.buttons["kit.resend"].isEnabled)
         capture("kit-confirmation")
 
-        app.textFields["kit.code"].tap()
-        app.textFields["kit.code"].typeText("012345")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3))
+        app.typeText("012345")
         XCTAssertFalse(app.buttons["kit.submit"].exists)
         XCTAssertTrue(app.buttons["kit.openAuth"].waitForExistence(timeout: 5))
         app.buttons["kit.openAuth"].tap()
         XCTAssertEqual(app.textFields["kit.email"].value as? String, "Email")
         app.buttons["kit.recovery"].tap()
-        XCTAssertTrue(app.navigationBars["Восстановление пароля"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["Восстановление"].waitForExistence(timeout: 3))
         capture("kit-recovery")
 
-        app.navigationBars["Восстановление пароля"].buttons["BackButton"].tap()
+        app.navigationBars["Восстановление"].buttons["BackButton"].tap()
         app.buttons["kit.authClose"].tap()
         app.buttons["kit.openAuth"].tap()
         app.navigationBars["Войти"].swipeDown()
-        XCTAssertTrue(app.buttons["kit.openAuth"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["kit.authClose"].exists)
+        app.buttons["kit.authClose"].tap()
         app.buttons["kit.close"].tap()
         XCTAssertTrue(app.navigationBars["Профиль"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["Новости"].tap()
+        selectSection("Новости", in: app)
         XCTAssertTrue(app.navigationBars["Новости"].exists)
     }
 
@@ -75,7 +80,7 @@ final class ComponentCatalogUITests: XCTestCase {
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
 
         app.launch()
-        app.tabBars.buttons["Профиль"].tap()
+        selectSection("Профиль", in: app)
         app.buttons["kit.entry"].tap()
 
         let actions = app.buttons["kit.actionsLink"]
@@ -97,19 +102,20 @@ final class ComponentCatalogUITests: XCTestCase {
         XCTAssertTrue(email.isHittable)
         capture("kit-large-text")
 
-        let register = app.buttons["kit.register"]
+        app.buttons["kit.authClose"].tap()
+        let register = app.buttons["kit.openRegistration"]
 
         for _ in 0..<6 where !register.isHittable { app.swipeUp() }
         XCTAssertTrue(register.isHittable)
         register.tap()
-        XCTAssertTrue(app.navigationBars["Создать аккаунт"].exists)
+        XCTAssertTrue(app.navigationBars["Регистрация"].exists)
     }
 
     @MainActor
     func testCatalogSpecimens() {
         let app = XCUIApplication()
         app.launch()
-        app.tabBars.buttons["Профиль"].tap()
+        selectSection("Профиль", in: app)
         app.buttons["kit.entry"].tap()
         for (title, name) in [
             ("Основы", "foundations"), ("Навигация", "navigation"),
@@ -134,6 +140,16 @@ final class ComponentCatalogUITests: XCTestCase {
             }
             app.navigationBars[title].buttons["BackButton"].tap()
         }
+    }
+
+    @MainActor
+    private func hideKeyboard(_ app: XCUIApplication) {
+        let buttons = app.buttons.matching(identifier: "Скрыть клавиатуру").allElementsBoundByIndex
+        guard let button = buttons.first(where: { $0.isHittable }) else {
+            XCTFail("The keyboard dismiss action must be reachable")
+            return
+        }
+        button.tap()
     }
 
     @MainActor

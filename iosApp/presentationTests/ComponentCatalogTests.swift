@@ -34,10 +34,10 @@ struct ComponentCatalogTests {
     private static func verifyRegistrationAndConfirmation() async {
         var date = Date(timeIntervalSince1970: 1000)
         let gate = RequestGate()
-        let model = CatalogAuthViewModel(now: { date }, pause: { await gate.pause($0) })
+        let model = CatalogAuthViewModel(initialStep: .register, now: { date }, pause: { await gate.pause($0) })
 
         model.setEmail("reader@example.test")
-        model.navigate(.register)
+        precondition(model.step == .register && model.path.isEmpty)
         model.setPassword("fixture-password")
         model.setRepeatedPassword("fixture-password")
 
@@ -70,7 +70,7 @@ struct ComponentCatalogTests {
 
         precondition(model.message == "kit.codeError" && !model.isCompleted)
 
-        model.setPath([.register])
+        model.setPath([])
 
         precondition(model.email == "reader@example.test" && model.code.isEmpty)
 
@@ -135,9 +135,7 @@ struct ComponentCatalogTests {
         let model = CatalogAuthViewModel(pause: { await gate.pause($0) })
 
         model.setEmail("reader@example.test")
-        model.navigate(.register)
-        model.setPassword("secret")
-        model.setRepeatedPassword("secret")
+        model.navigate(.recovery)
         model.submit()
         await wait { gate.calls == 1 }
 

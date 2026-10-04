@@ -4,13 +4,13 @@ final class ScreenStateUITests: XCTestCase {
     @MainActor
     func testGuestFavoritesUsesProfileActionsAtBottom() {
         let app = launch(extra: [])
-        app.buttons["Profile"].firstMatch.tap()
+        selectSection("Profile", in: app)
         let profileRegister = app.buttons["profile.register"]
         XCTAssertTrue(profileRegister.waitForExistence(timeout: 5))
         let bottom = profileRegister.frame.maxY
         let label = profileRegister.label
 
-        app.buttons["Favorites"].firstMatch.tap()
+        selectSection("Favorites", in: app)
         let login = app.buttons["favorites.guest.login"]
         let register = app.buttons["favorites.guest.register"]
         XCTAssertTrue(register.waitForExistence(timeout: 5))
@@ -25,7 +25,7 @@ final class ScreenStateUITests: XCTestCase {
         let large = launch(extra: [
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL",
         ])
-        large.buttons["Favorites"].firstMatch.tap()
+        selectSection("Favorites", in: large)
         XCUIDevice.shared.orientation = .landscapeLeft
         defer { XCUIDevice.shared.orientation = .portrait }
         let registration = large.buttons["favorites.guest.register"]

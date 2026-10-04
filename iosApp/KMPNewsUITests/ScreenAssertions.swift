@@ -2,6 +2,25 @@ import XCTest
 
 extension XCTestCase {
     @MainActor
+    func selectSection(_ title: String, in app: XCUIApplication) {
+        func tapItem() {
+            if app.tabBars.buttons[title].exists {
+                app.tabBars.buttons[title].tap()
+            } else if app.cells[title].firstMatch.exists {
+                app.cells[title].firstMatch.tap()
+            } else {
+                let items = app.buttons.matching(identifier: title).allElementsBoundByIndex
+                (items.last(where: { $0.isHittable }) ?? app.buttons[title].firstMatch).tap()
+            }
+        }
+
+        tapItem()
+        // At accessibility sizes the first tap can reveal an overflowing iPad tab.
+        if !app.navigationBars[title].waitForExistence(timeout: 3) { tapItem() }
+        XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     func assertCentered(
         _ app: XCUIApplication, includesSearchField: Bool = false,
         file: StaticString = #filePath, line: UInt = #line

@@ -29,9 +29,9 @@ final class FavoriteSignInUITests: XCTestCase {
     }
 
     @MainActor
-    func testProfileAuthRequiresExplicitCloseAtEveryStep() {
+    func testProfileAuthUsesCloseAtRootAndBackOnNestedSteps() {
         let app = launch()
-        app.tabBars.buttons["Профиль"].tap()
+        selectSection("Профиль", in: app)
         let login = app.buttons["profile.login"]
         XCTAssertTrue(login.waitForExistence(timeout: 5))
         capture("profile-registration-prompt")
@@ -39,9 +39,11 @@ final class FavoriteSignInUITests: XCTestCase {
         XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 5))
         verifyAuthCannotSwipeClosed(app)
         capture("profile-large-auth-sheet")
-        app.buttons["auth.register"].tap()
-        XCTAssertTrue(app.secureTextFields["auth.repeatPassword"].waitForExistence(timeout: 5))
-        verifyAuthCannotSwipeClosed(app)
+        app.buttons["auth.forgotPassword"].tap()
+        XCTAssertTrue(app.navigationBars["Восстановление"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["auth.close"].exists)
+        app.navigationBars["Восстановление"].buttons["BackButton"].tap()
+        XCTAssertTrue(app.buttons["auth.close"].waitForExistence(timeout: 5))
         app.buttons["auth.close"].tap()
         XCTAssertTrue(login.waitForExistence(timeout: 5))
         XCTAssertFalse(app.textFields["auth.email"].exists)
@@ -71,7 +73,7 @@ final class FavoriteSignInUITests: XCTestCase {
         XCTAssertTrue(remove.waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Новость добавлена в избранное"].waitForExistence(timeout: 5))
         capture("favorite-filled-star")
-        app.tabBars.buttons["Избранное"].tap()
+        selectSection("Избранное", in: app)
         XCTAssertTrue(app.otherElements["feed.article.fixture-0"].waitForExistence(timeout: 5))
         capture("favorites-list-content")
         app.buttons["favorites.save.fixture-0"].tap()
@@ -83,7 +85,7 @@ final class FavoriteSignInUITests: XCTestCase {
             forDuration: 0.1, thenDragTo: list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85)))
         XCTAssertTrue(app.staticTexts["Пока нет избранных новостей"].waitForExistence(timeout: 5))
         capture("favorites-list-empty")
-        app.tabBars.buttons["Новости"].tap()
+        selectSection("Новости", in: app)
         XCTAssertEqual(star.label, "Добавить в избранное")
         star.tap()
         XCTAssertTrue(remove.waitForExistence(timeout: 5))
@@ -97,10 +99,10 @@ final class FavoriteSignInUITests: XCTestCase {
     @MainActor
     func testStarChangesBeforeSuccessNotice() {
         let app = launch(extra: ["--favorites-ui-slow"])
-        app.tabBars.buttons["Профиль"].tap()
+        selectSection("Профиль", in: app)
         app.buttons["profile.login"].tap()
         signIn(app)
-        app.tabBars.buttons["Новости"].tap()
+        selectSection("Новости", in: app)
         let star = app.buttons["favorites.save.fixture-0"]
         XCTAssertTrue(star.waitForExistence(timeout: 5))
 
@@ -129,7 +131,7 @@ final class FavoriteSignInUITests: XCTestCase {
         XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
         app.alerts.buttons["Закрыть"].tap()
         XCTAssertTrue(remove.exists)
-        app.tabBars.buttons["Избранное"].tap()
+        selectSection("Избранное", in: app)
         XCTAssertTrue(app.otherElements["feed.article.fixture-0"].waitForExistence(timeout: 5))
         capture("favorites-retained-after-delete-error")
     }
@@ -185,8 +187,8 @@ final class FavoriteSignInUITests: XCTestCase {
         app.buttons["auth.submit"].tap()
         let code = app.textFields["auth.code"]
         XCTAssertTrue(code.waitForExistence(timeout: 5))
-        code.tap()
-        code.typeText("012345")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3))
+        app.typeText("012345")
         let saved = app.buttons.matching(identifier: "favorites.save.fixture-0").matching(
             NSPredicate(format: "label == %@", "Удалить из избранного")
         ).firstMatch

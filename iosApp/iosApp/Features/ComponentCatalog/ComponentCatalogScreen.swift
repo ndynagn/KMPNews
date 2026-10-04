@@ -39,13 +39,20 @@
                 NavigationLink("kit.profile") { profile.navigationTitle("kit.profile") }
                     .accessibilityIdentifier("kit.profileLink")
                 Section("kit.forms") {
-                    Button("kit.openAuth") { showsAuth = true }.accessibilityIdentifier("kit.openAuth")
+                    Button("auth.login") {
+                        authViewModel = CatalogAuthViewModel()
+                        showsAuth = true
+                    }.accessibilityIdentifier("kit.openAuth")
+                    Button("auth.registration") {
+                        authViewModel = CatalogAuthViewModel(initialStep: .register)
+                        showsAuth = true
+                    }.accessibilityIdentifier("kit.openRegistration")
                     Text("kit.formsRule").font(.footnote).foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("kit.title")
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("auth.close", systemImage: "xmark") { dismiss() }
                         .labelStyle(.iconOnly).accessibilityIdentifier("kit.close")
                 }

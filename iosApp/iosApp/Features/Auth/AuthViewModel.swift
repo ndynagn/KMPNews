@@ -49,7 +49,6 @@ final class AuthViewModel: Identifiable {
         case .password(let value): state.password = value
         case .repeatPassword(let value): state.repeatPassword = value
         case .code: break
-        case .register: navigate(to: .register)
         case .recovery: navigate(to: .recovery)
         case .returnToLogin:
             renewRecovery()

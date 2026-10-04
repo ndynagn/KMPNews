@@ -1894,7 +1894,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Восстановление пароля"
+            "value": "Восстановление"
           }
         },
         "en": {
@@ -2509,6 +2509,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Не удалось обработать ответ. Попробуйте ещё раз."
+          }
+        }
+      }
+    },
+    "auth.return_to_login": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перейти ко входу"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return to sign in"
           }
         }
       }
