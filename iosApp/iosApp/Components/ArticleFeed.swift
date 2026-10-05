@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// The same card composition, margins and scroll ownership for News and Search.
+/// Shared adaptive collection for News, Search and Favorites, with stable article scroll targets.
 struct ArticleFeed<Footer: View>: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var minimumCardWidth: CGFloat = 320
     let articles: [FeedArticle]
     @Binding var scrollID: String?
     var savedIDs: Set<String> = []
@@ -12,25 +14,34 @@ struct ArticleFeed<Footer: View>: View {
     @ViewBuilder var footer: () -> Footer
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                LazyVStack(spacing: 16) {
-                    ForEach(articles) { article in
-                        FeedCard(
-                            article: article, isSaved: savedIDs.contains(article.id), canSave: canSave,
-                            onSave: onSave.map { action in { action(article) } },
-                            onOpen: article.openingURL == nil ? nil : onOpen.map { action in { action(article) } }
-                        )
-                        .id(article.id)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 16) {
+                    LazyVGrid(columns: columns(width: geometry.size.width), alignment: .leading, spacing: 16) {
+                        ForEach(articles) { article in
+                            FeedCard(
+                                article: article, isSaved: savedIDs.contains(article.id), canSave: canSave,
+                                onSave: onSave.map { action in { action(article) } },
+                                onOpen: onOpen.map { action in { action(article) } }
+                            )
+                            .id(article.id)
+                        }
                     }
+                    .scrollTargetLayout()
+                    footer()
                 }
-                .scrollTargetLayout()
-                footer()
+                .padding(16)
             }
-            .padding(16)
+            .background(Color(uiColor: .systemGroupedBackground))
+            .scrollPosition(id: $scrollID, anchor: .top)
+            .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.1, onVisibleIDsChange)
+            .scrollBounceBehavior(.always)
         }
-        .background(Color(uiColor: .systemGroupedBackground))
-        .scrollPosition(id: $scrollID, anchor: .top)
-        .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.1, onVisibleIDsChange)
+    }
+
+    private func columns(width: CGFloat) -> [GridItem] {
+        let count = ArticleGridLayout.columnCount(
+            width: width, minimumCardWidth: minimumCardWidth, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
+        return Array(repeating: GridItem(.flexible(), spacing: 16, alignment: .top), count: count)
     }
 }

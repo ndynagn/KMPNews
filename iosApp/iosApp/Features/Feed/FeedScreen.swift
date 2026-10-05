@@ -7,6 +7,7 @@ struct FeedScreen: View {
     var savingID: String?
     var favoritesBusy = false
     var onSave: ((FeedArticle) -> Void)?
+    var onOpen: ((FeedArticle) -> Void)?
     @State private var visibleIDs: Set<String> = []
 
     var body: some View {
@@ -27,6 +28,7 @@ struct FeedScreen: View {
         ArticleFeed(
             articles: viewModel.state.snapshot?.articles ?? [], scrollID: $scrollID,
             savedIDs: savedIDs, canSave: savingID == nil && !favoritesBusy, onSave: onSave,
+            onOpen: onOpen,
             onVisibleIDsChange: { ids in
                 visibleIDs = Set(ids)
                 loadMoreIfNeeded()

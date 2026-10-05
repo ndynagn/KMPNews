@@ -6,8 +6,12 @@ struct FavoritesScreen: View {
     let profile: ProfileState
     let onLogin: () -> Void
     let onRegister: () -> Void
+    var onOpen: ((FeedArticle) -> Void)?
+    var isShowingArticle = false
     @State private var scrollID: String?
     @State private var visibleIDs: Set<String> = []
+    @State private var returningFromArticle = false
+    @State private var loadedProfile: ProfileState?
 
     var body: some View {
         Group {
@@ -25,7 +29,15 @@ struct FavoritesScreen: View {
         }
         .task(id: profile) {
             viewModel.accountChanged(profile)
+            if returningFromArticle, loadedProfile == profile {
+                returningFromArticle = false
+                return
+            }
+            loadedProfile = profile
             if actions.savingID == nil { await viewModel.refresh() }
+        }
+        .onChange(of: isShowingArticle) { _, showing in
+            if showing { returningFromArticle = true }
         }
         .onChange(of: viewModel.isLoading) { _, loading in if !loading { loadMoreIfNeeded() } }
         .onChange(of: actions.savingID) { _, id in if id == nil { loadMoreIfNeeded() } }
@@ -54,21 +66,18 @@ struct FavoritesScreen: View {
     }
 
     private var articleList: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach(viewModel.articles) { article in
-                    FeedCard(
-                        article: article, isSaved: isSaved(article),
-                        canSave: actions.savingID == nil && !viewModel.isLoading,
-                        onSave: { actions.save(article, profile: profile, isSaved: isSaved(article)) }
-                    )
-                    .id(article.id)
-                    .onAppear {
-                        visibleIDs.insert(article.id)
-                        loadMoreIfNeeded()
-                    }
-                    .onDisappear { visibleIDs.remove(article.id) }
-                }
+        ArticleFeed(
+            articles: viewModel.articles, scrollID: $scrollID,
+            savedIDs: Set(viewModel.articles.filter(isSaved).map(\.id)),
+            canSave: actions.savingID == nil && !viewModel.isLoading,
+            onSave: { actions.save($0, profile: profile, isSaved: isSaved($0)) },
+            onOpen: onOpen,
+            onVisibleIDsChange: { ids in
+                visibleIDs = Set(ids)
+                loadMoreIfNeeded()
+            }
+        ) {
+            VStack(spacing: 16) {
                 if viewModel.isLoading { ProgressView("feed.loading") }
                 if viewModel.hasError, !showsFullScreenError {
                     AppStatusView(
@@ -77,12 +86,7 @@ struct FavoritesScreen: View {
                         .accessibilityIdentifier("favorites.retry")
                 }
             }
-            .scrollTargetLayout()
-            .padding(16)
         }
-        .background(Color(uiColor: .systemGroupedBackground))
-        .scrollPosition(id: $scrollID)
-        .scrollBounceBehavior(.always)
         .accessibilityIdentifier("favorites.list")
     }
 

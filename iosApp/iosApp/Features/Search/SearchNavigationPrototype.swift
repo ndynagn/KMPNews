@@ -23,6 +23,7 @@
             } search: {
                 SearchNavigationDestination(
                     query: $query, isSelected: selected == .search, usesSearchRole: usesSearchRole,
+                    articlePath: .constant([]),
                     onClose: { selected = previous }, onSubmit: {}
                 ) {
                     ScrollView {

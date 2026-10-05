@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct SearchScreen: View {
-    @Environment(\.openURL) private var openURL
     let viewModel: SearchViewModel
     @Binding var scrollID: String?
     let savedIDs: Set<String>
     let canSave: Bool
     let onSave: (FeedArticle) -> Void
+    let onOpen: (FeedArticle) -> Void
     @State private var visibleIDs: Set<String> = []
 
     var body: some View {
@@ -31,9 +31,7 @@ struct SearchScreen: View {
         ArticleFeed(
             articles: viewModel.state.articles, scrollID: $scrollID,
             savedIDs: savedIDs, canSave: canSave, onSave: onSave,
-            onOpen: { article in
-                if let url = article.openingURL { openURL(url) }
-            },
+            onOpen: onOpen,
             onVisibleIDsChange: { ids in
                 visibleIDs = Set(ids)
                 loadMoreIfNeeded()

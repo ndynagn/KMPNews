@@ -1,6 +1,30 @@
 {
   "sourceLanguage": "ru",
   "strings": {
+    "article.actions": {
+      "localizations": {
+        "ru": { "stringUnit": { "state": "translated", "value": "Действия с новостью" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Article actions" } }
+      }
+    },
+    "article.openSource": {
+      "localizations": {
+        "ru": { "stringUnit": { "state": "translated", "value": "Открыть источник" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Open source" } }
+      }
+    },
+    "article.share": {
+      "localizations": {
+        "ru": { "stringUnit": { "state": "translated", "value": "Поделиться" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Share" } }
+      }
+    },
+    "article.noSummary": {
+      "localizations": {
+        "ru": { "stringUnit": { "state": "translated", "value": "Краткое описание отсутствует." } },
+        "en": { "stringUnit": { "state": "translated", "value": "No summary available." } }
+      }
+    },
     "common.imageUnavailable": {
       "localizations": {
         "ru": {

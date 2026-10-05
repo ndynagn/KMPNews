@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var dismissingAuthViewModel: AuthViewModel?
     @State private var scrollID: String?
     @State private var searchScrollID: String?
+    @State private var articleNavigation = ArticleNavigationState()
     #if DEBUG
         @State private var showsComponentCatalog = false
     #endif
@@ -36,8 +37,10 @@ struct ContentView: View {
     }
 
     var body: some View {
-        HomeTabs(selection: selection, usesSearchRole: usesSearchRole) {
-            NavigationStack {
+        HomeTabs(
+            selection: selection, usesSearchRole: usesSearchRole
+        ) {
+            NavigationStack(path: articlePath(for: .news)) {
                 Group {
                     if let feedViewModel = homeViewModel.feedViewModel {
                         FeedScreen(
@@ -51,7 +54,7 @@ struct ContentView: View {
                                         article, profile: profileViewModel.state,
                                         isSaved: actions.savedIDs.contains(article.id))
                                 }
-                            })
+                            }, onOpen: { openArticle($0, in: .news) })
                     } else if homeViewModel.storageFailed {
                         AppScreenState {
                             AppErrorView(title: "feed.unavailableTitle", message: "feed.storageError") {
@@ -67,19 +70,23 @@ struct ContentView: View {
                 }
                 .navigationTitle("home.news")
                 .navigationBarTitleDisplayMode(.large)
+                .navigationDestination(for: ArticleRoute.self) { articleDestination($0.model) }
             }
         } favorites: {
-            NavigationStack {
+            NavigationStack(path: articlePath(for: .favorites)) {
                 Group {
                     if let list = homeViewModel.favoritesViewModel, let actions = homeViewModel.favoriteSaveViewModel {
                         FavoritesScreen(
                             viewModel: list, actions: actions, profile: profileViewModel.state,
-                            onLogin: { presentAuth(.signIn) }, onRegister: { presentAuth(.register) })
+                            onLogin: { presentAuth(.signIn) }, onRegister: { presentAuth(.register) },
+                            onOpen: { openArticle($0, in: .favorites) },
+                            isShowingArticle: articleNavigation.destinations[.favorites] != nil)
                     } else {
                         AppScreenState { ProgressView("feed.loading") }
                     }
                 }
                 .navigationTitle("home.favorites").navigationBarTitleDisplayMode(.large)
+                .navigationDestination(for: ArticleRoute.self) { articleDestination($0.model) }
             }
         } profile: {
             NavigationStack {
@@ -108,6 +115,8 @@ struct ContentView: View {
                     get: { homeViewModel.searchViewModel.state.query },
                     set: { homeViewModel.searchViewModel.onEvent(.queryChanged($0)) }),
                 isSelected: selected == .search, usesSearchRole: usesSearchRole,
+                articlePath: articlePath(for: .search),
+                isShowingArticle: articleNavigation.destinations[.search] != nil,
                 onClose: { selected = previousSection },
                 onSubmit: { homeViewModel.searchViewModel.onEvent(.submit) }
             ) {
@@ -121,7 +130,9 @@ struct ContentView: View {
                         actions.save(
                             article, profile: profileViewModel.state,
                             isSaved: actions.savedIDs.contains(article.id))
-                    })
+                    }, onOpen: { openArticle($0, in: .search) }
+                )
+                .navigationDestination(for: ArticleRoute.self) { articleDestination($0.model) }
             }
         }
         .sheet(item: $authViewModel, onDismiss: finishAuthDismissal) { model in
@@ -186,6 +197,7 @@ struct ContentView: View {
             Button("auth.close", role: .cancel) { homeViewModel.favoriteSaveViewModel?.dismiss() }
         }
         .onChange(of: profileViewModel.state) { _, state in
+            articleNavigation.accountChanged(state)
             homeViewModel.favoriteSaveViewModel?.accountChanged(state)
             homeViewModel.favoritesViewModel?.accountChanged(state)
             updateMembership()
@@ -198,11 +210,13 @@ struct ContentView: View {
         .task { await profileViewModel.observe() }
         .onAppear {
             homeViewModel.prepare()
+            articleNavigation.accountChanged(profileViewModel.state)
             homeViewModel.favoritesViewModel?.accountChanged(profileViewModel.state)
             profileViewModel.restore()
             updateActivity()
         }
         .onChange(of: selected) { _, _ in updateActivity() }
+        .onChange(of: articleNavigation.articleIDs) { _, _ in updateMembership() }
         .onChange(of: homeViewModel.feedViewModel?.state.snapshot?.articles.map(\.id)) { _, _ in updateMembership() }
         .onChange(of: homeViewModel.searchViewModel.state.articles.map(\.id)) { _, _ in updateMembership() }
         .onChange(of: homeViewModel.favoriteSaveViewModel?.savingID) { _, id in
@@ -226,6 +240,42 @@ struct ContentView: View {
     private var usesSearchRole: Bool {
         if #available(iOS 26, *) { return true }
         return false
+    }
+
+    private var canPresentArticleAction: Bool {
+        authViewModel == nil && favoriteAuthViewModel == nil
+            && homeViewModel.favoriteSaveViewModel?.presentation == nil
+            && homeViewModel.favoriteSaveViewModel?.savingID == nil
+            && homeViewModel.favoriteSaveViewModel?.hasError != true
+    }
+
+    private func openArticle(_ article: FeedArticle, in section: HomeSection) {
+        guard canPresentArticleAction else { return }
+        articleNavigation.open(article, in: section)
+    }
+
+    private func articlePath(for section: HomeSection) -> Binding<[ArticleRoute]> {
+        Binding(
+            get: { articleNavigation.destinations[section].map { [ArticleRoute(model: $0)] } ?? [] },
+            set: { if $0.isEmpty { articleNavigation.close(section) } })
+    }
+
+    private func articleDestination(_ model: ArticleDetailViewModel) -> some View {
+        ArticleDetailScreen(
+            viewModel: model,
+            favoriteActions: homeViewModel.favoriteSaveViewModel,
+            favorites: homeViewModel.favoritesViewModel,
+            canPresentActions: { canPresentArticleAction },
+            onSave: {
+                guard let actions = homeViewModel.favoriteSaveViewModel else { return }
+                actions.save(
+                    model.article, profile: profileViewModel.state,
+                    isSaved: actions.isSaved(
+                        model.article.id,
+                        fallback: homeViewModel.favoritesViewModel?.snapshot?.articles.contains {
+                            $0.id == model.article.id
+                        } == true))
+            })
     }
 
     private var selection: Binding<HomeSection> {
@@ -283,6 +333,7 @@ struct ContentView: View {
         let ids =
             (homeViewModel.feedViewModel?.state.snapshot?.articles.map(\.id) ?? [])
             + homeViewModel.searchViewModel.state.articles.map(\.id)
+            + articleNavigation.articleIDs
         homeViewModel.favoriteSaveViewModel?.resolveMembership(ids, profile: profileViewModel.state)
     }
 }

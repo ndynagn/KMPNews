@@ -52,7 +52,7 @@ final class SearchUITests: XCTestCase {
         field.typeText("space")
         let first = app.buttons["favorites.save.search-0"]
         XCTAssertTrue(first.waitForExistence(timeout: 10))
-        XCTAssertFalse(app.buttons["article.open.search-0"].exists)
+        XCTAssertTrue(app.buttons["article.open.search-0"].exists)
         XCTAssertTrue(app.buttons["article.open.search-1"].exists)
         capture("search-cards")
         first.tap()

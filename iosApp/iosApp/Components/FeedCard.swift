@@ -11,7 +11,7 @@ struct FeedCard: View {
     var body: some View {
         Group {
             if let onOpen {
-                Button(action: onOpen) { preview }
+                Button(action: onOpen) { preview.contentShape(.rect) }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("article.open.\(article.id)")
             } else {
@@ -32,8 +32,7 @@ struct FeedCard: View {
     private var preview: some View {
         AppNewsPreview(
             title: article.title ?? String(localized: "feed.noTitle"), metadata: metadata,
-            showsImage: article.imageURL != nil,
-            captionTrailingInset: article.imageURL == nil && onSave != nil ? 50 : 0
+            usesUniformCaptionHeight: true
         ) {
             if let imageURL = article.imageURL {
                 LazyImage(url: imageURL) { state in
@@ -44,6 +43,9 @@ struct FeedCard: View {
                     }
                 }
                 .accessibilityHidden(true)
+            } else {
+                AppImagePlaceholder(state: .sample)
+                    .accessibilityHidden(true)
             }
         }
     }
