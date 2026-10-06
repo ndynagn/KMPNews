@@ -1,6 +1,7 @@
 package com.ndynagn.kmp.news.feature.auth.data
 
 import com.ndynagn.kmp.news.feature.auth.domain.AuthFailure
+import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -31,6 +32,7 @@ internal sealed interface AuthResponse<out T> {
 internal interface AuthRemoteSource {
     suspend fun signIn(email: String, password: String): AuthResponse<AuthTokenDto>
     suspend fun register(email: String, password: String): AuthResponse<Unit>
+    suspend fun registerWithProfile(email: String, password: String, details: ProfileDetails): AuthResponse<Unit>
     suspend fun confirm(email: String, code: String): AuthResponse<AuthTokenDto>
     suspend fun resend(email: String): AuthResponse<Unit>
     suspend fun requestRecovery(email: String): AuthResponse<Unit>

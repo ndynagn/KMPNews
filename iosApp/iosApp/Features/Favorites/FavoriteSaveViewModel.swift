@@ -11,8 +11,10 @@ final class FavoriteSaveViewModel {
     private(set) var savedIDs: Set<String> = []
     private(set) var hasError = false
     private(set) var addedFeedback = 0
+    private(set) var errorFeedback = 0
     private(set) var showsAddedNotice = false
     private(set) var membershipFailed = false
+    private var feedbackGeneration = 0
     private var noticeTask: Task<Void, Never>?
     private var knownIDs: Set<String> = []
     private var previousSaved = false
@@ -47,7 +49,9 @@ final class FavoriteSaveViewModel {
             pendingRemoval = false
             presentation = .invitation
         case .authenticated: startSave()
-        case .restoring, .unavailable: hasError = true
+        case .restoring, .unavailable:
+            hasError = true
+            errorFeedback += 1
         }
     }
 
@@ -150,6 +154,9 @@ final class FavoriteSaveViewModel {
         dismiss()
     }
 
+    /// Navigation drops feedback from an in-flight action without cancelling its persistence.
+    func discardPendingFeedback() { feedbackGeneration += 1 }
+
     func dismissAddedNotice() {
         noticeTask?.cancel()
         showsAddedNotice = false
@@ -202,6 +209,7 @@ final class FavoriteSaveViewModel {
         }
         savingID = article.id
         let currentGeneration = generation
+        let feedbackOwner = feedbackGeneration
         operation = Task { [weak self, client] in
             let result: FavoriteSaveResult
             do {
@@ -234,7 +242,9 @@ final class FavoriteSaveViewModel {
             case .busy:
                 self.pendingArticle = nil
                 self.pendingRemoval = nil
-            case .failed: self.hasError = true
+            case .failed:
+                self.hasError = true
+                if feedbackOwner == self.feedbackGeneration { self.errorFeedback += 1 }
             }
         }
     }

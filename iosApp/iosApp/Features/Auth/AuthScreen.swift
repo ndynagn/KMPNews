@@ -40,6 +40,7 @@ struct AuthScreen: View {
             }
         }
         .onDisappear { viewModel.beginDismissal() }
+        .errorFeedback(viewModel.errorFeedback)
     }
 }
 
@@ -51,6 +52,9 @@ private struct AuthStepScreen: View {
     private enum Field: Hashable { case email, code }
     @FocusState private var focusedField: Field?
     @State private var passwordFocused = false
+    @FocusState private var surnameFocused: Bool
+    @State private var isVisible = false
+    @State private var isResendingCode = false
 
     private var resendTitle: LocalizedStringKey {
         viewModel.state.resendSeconds > 0
@@ -68,60 +72,110 @@ private struct AuthStepScreen: View {
         case .recovery: "auth.recovery_title"
         case .recoveryCode: "auth.recovery_confirm"
         case .newPassword: "auth.new_password"
+        case .registrationPhoto: "profile.photo"
         }
     }
 
     var body: some View {
         Form {
-            Section {
-                if isCodeStep {
-                    TextField("auth.code", text: binding(\.code, AuthEvent.code))
-                        .keyboardType(.numberPad).textContentType(.oneTimeCode)
-                        .focused($focusedField, equals: .code)
-                        .accessibilityIdentifier("auth.code")
-                } else {
-                    if step != .newPassword {
-                        TextField("auth.email", text: binding(\.email, AuthEvent.email))
-                            .keyboardType(.emailAddress).textContentType(step == .signIn ? .username : .emailAddress)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled()
-                            .focused($focusedField, equals: .email)
-                            .accessibilityIdentifier("auth.email")
-                    }
-                    if step != .recovery {
-                        AppPasswordField(
-                            value: binding(\.password, AuthEvent.password), isNewPassword: isNewPassword,
-                            accessibilityID: "auth.password", isFocused: step == .newPassword ? $passwordFocused : nil)
-                        if isNewPassword {
-                            AppPasswordField(
-                                value: binding(\.repeatPassword, AuthEvent.repeatPassword), isRepeatedPassword: true,
-                                isNewPassword: true, accessibilityID: "auth.repeatPassword")
-                        }
+            if step == .register {
+                Section {
+                    ProfileNameFields(
+                        details: Binding(
+                            get: { viewModel.state.details },
+                            set: { viewModel.onEvent(.details($0)) }), surnameFocus: $surnameFocused)
+                } header: {
+                    Text("profile.personalDetails")
+                } footer: {
+                    if viewModel.state.errorKey == "profile.namesRequired" {
+                        AppFormMessage(title: "profile.namesRequired")
                     }
                 }
-            } footer: {
-                VStack(alignment: .leading, spacing: 8) {
-                    if let key = viewModel.state.errorKey {
-                        AppFormMessage(title: LocalizedStringKey(key)).accessibilityIdentifier("auth.error")
-                    } else if isCodeStep {
-                        Text(
-                            String(
-                                format: String(
-                                    localized: step == .recoveryCode ? "auth.recovery_sent" : "auth.code_hint"),
-                                viewModel.state.email))
-                    } else if isNewPassword {
-                        Text("auth.password_hint")
-                    } else if step == .recovery {
-                        Text("auth.recovery_hint")
-                    }
-                    if step == .signIn {
-                        AppFormFooterAction(title: "auth.forgot_password") {
-                            viewModel.onEvent(.recovery)
-                        }
-                        .accessibilityIdentifier("auth.forgotPassword")
-                    }
+                .disabled(viewModel.state.isBusy)
+                Section {
+                    ProfilePhotoField(
+                        photo: viewModel.state.photo,
+                        onPhoto: { viewModel.onEvent(.photo($0)) },
+                        onLoading: { viewModel.onEvent(.preparingPhoto($0)) },
+                        onError: { viewModel.onEvent(.photoFailed) })
+                    if viewModel.state.isPreparingPhoto { ProgressView("profile.preparingPhoto") }
+                } header: {
+                    Text("profile.photo")
+                } footer: {
+                    Text("profile.photoOptional")
                 }
+                .disabled(viewModel.state.isBusy)
             }
-            .disabled(viewModel.state.isBusy || viewModel.state.passwordWasChanged)
+            if step == .registrationPhoto {
+                Section {
+                    if viewModel.state.isBusy {
+                        ProgressView("profile.uploadingPhoto")
+                    } else {
+                        AppFormMessage(
+                            title: LocalizedStringKey(viewModel.state.errorKey ?? "profile.photoUploadFailed"))
+                        AppActionButton(title: "auth.retry") { viewModel.onEvent(.submit) }
+                        AppActionButton(title: "profile.skipPhoto", emphasis: .text) { viewModel.onEvent(.skipPhoto) }
+                    }
+                } footer: {
+                    Text("profile.accountCreated")
+                }
+            } else {
+                Section {
+                    if isCodeStep {
+                        TextField("auth.code", text: codeBinding)
+                            .keyboardType(.numberPad).textContentType(.oneTimeCode)
+                            .focused($focusedField, equals: .code)
+                            .accessibilityIdentifier("auth.code")
+                    } else {
+                        if step != .newPassword {
+                            TextField("auth.email", text: binding(\.email, AuthEvent.email))
+                                .keyboardType(.emailAddress).textContentType(
+                                    step == .signIn ? .username : .emailAddress
+                                )
+                                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                .focused($focusedField, equals: .email)
+                                .accessibilityIdentifier("auth.email")
+                        }
+                        if step != .recovery {
+                            AppPasswordField(
+                                value: binding(\.password, AuthEvent.password), isNewPassword: isNewPassword,
+                                accessibilityID: "auth.password",
+                                isFocused: step == .newPassword ? $passwordFocused : nil)
+                            if isNewPassword {
+                                AppPasswordField(
+                                    value: binding(\.repeatPassword, AuthEvent.repeatPassword),
+                                    isRepeatedPassword: true,
+                                    isNewPassword: true, accessibilityID: "auth.repeatPassword")
+                            }
+                        }
+                    }
+                } header: {
+                    if step == .register { Text("profile.credentials") }
+                } footer: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let key = viewModel.state.errorKey, key != "profile.namesRequired" {
+                            AppFormMessage(title: LocalizedStringKey(key)).accessibilityIdentifier("auth.error")
+                        } else if isCodeStep {
+                            Text(
+                                String(
+                                    format: String(
+                                        localized: step == .recoveryCode ? "auth.recovery_sent" : "auth.code_hint"),
+                                    viewModel.state.email))
+                        } else if isNewPassword {
+                            Text("auth.password_hint")
+                        } else if step == .recovery {
+                            Text("auth.recovery_hint")
+                        }
+                        if step == .signIn {
+                            AppFormFooterAction(title: "auth.forgot_password") {
+                                viewModel.onEvent(.recovery)
+                            }
+                            .accessibilityIdentifier("auth.forgotPassword")
+                        }
+                    }
+                }
+                .disabled(viewModel.state.isBusy || viewModel.state.passwordWasChanged)
+            }
             if isCodeStep || (step == .recovery && viewModel.state.resendSeconds > 0) {
                 Section {
                     AppFormActions {
@@ -132,14 +186,16 @@ private struct AuthStepScreen: View {
                             if viewModel.state.isBusy {
                                 ProgressView("common.loading")
                                     .frame(maxWidth: .infinity)
-                            } else if viewModel.state.errorKey != nil && viewModel.state.code.count == 6 {
-                                AppActionButton(title: "auth.retry", emphasis: .text) { viewModel.onEvent(.submit) }
-                                    .accessibilityIdentifier("auth.retryCode")
+                            } else if viewModel.state.canRetryCodeVerification {
+                                AppActionButton(title: "auth.retryCodeVerification", emphasis: .text) {
+                                    sendCodeRequest(.submit)
+                                }
+                                .accessibilityIdentifier("auth.retryCode")
                             }
                             AppActionButton(
                                 title: resendTitle, emphasis: .text,
                                 isEnabled: viewModel.state.resendSeconds == 0
-                            ) { viewModel.onEvent(.resend) }
+                            ) { sendCodeRequest(.resend) }
                             .accessibilityIdentifier("auth.resend")
                         }
                     }
@@ -149,18 +205,24 @@ private struct AuthStepScreen: View {
         }
         .listSectionSpacing(AppFormLayout.sectionSpacing)
         .scrollDismissesKeyboard(.interactively)
+        .onAppear { isVisible = true }
         .task {
             // Wait for the sheet/navigation transition before requesting the keyboard.
             do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
-            guard step == viewModel.state.step else { return }
+            guard isVisible, step == viewModel.state.step, !viewModel.state.isBusy,
+                !viewModel.state.isComplete
+            else { return }
             focusFirstField()
         }
         .onDisappear {
+            isVisible = false
+            isResendingCode = false
             focusedField = nil
+            surnameFocused = false
             passwordFocused = false
         }
         .onChange(of: viewModel.state.isBusy) { _, busy in
-            if !busy && isCodeStep && step == viewModel.state.step { focusedField = .code }
+            updateCodeFocus(isBusy: busy)
         }
         .onChange(of: viewModel.state.errorKey) { _, key in
             if step == viewModel.state.step, let key {
@@ -170,11 +232,8 @@ private struct AuthStepScreen: View {
         }
         .navigationTitle(screenTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(step == .registrationPhoto)
         .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                AppKeyboardDismissButton()
-            }
             ToolbarItem(placement: .cancellationAction) {
                 if step == viewModel.initialStep {
                     Button("auth.close", systemImage: "xmark") {
@@ -193,8 +252,49 @@ private struct AuthStepScreen: View {
         }
     }
 
+    private var codeBinding: Binding<String> {
+        Binding(
+            get: { viewModel.state.code },
+            set: {
+                viewModel.onEvent(.code($0))
+                if viewModel.state.isBusy { focusedField = nil }
+            })
+    }
+
+    private func sendCodeRequest(_ event: AuthEvent) {
+        if case .resend = event { isResendingCode = true }
+        viewModel.onEvent(event)
+
+        if viewModel.state.isBusy {
+            focusedField = nil
+        } else {
+            isResendingCode = false
+        }
+    }
+
+    private func updateCodeFocus(isBusy: Bool) {
+        guard isVisible, isCodeStep, step == viewModel.state.step, !viewModel.state.isComplete else { return }
+
+        if isBusy {
+            focusedField = nil
+            return
+        }
+
+        defer { isResendingCode = false }
+
+        let error = viewModel.state.errorKey
+        if isResendingCode {
+            if error == nil && viewModel.state.code.isEmpty { focusedField = .code }
+        } else if error == AuthProblem.invalidCode.rawValue || error == AuthProblem.expired.rawValue {
+            focusedField = .code
+        }
+    }
+
     private func focusFirstField() {
-        if step == .newPassword {
+        if step == .register || step == .registrationPhoto {
+            focusedField = nil
+            surnameFocused = step == .register
+        } else if step == .newPassword {
             passwordFocused = true
         } else {
             focusedField = isCodeStep ? .code : .email

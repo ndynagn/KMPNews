@@ -29,7 +29,7 @@ protocol AuthClient {
     func observe() -> AsyncStream<ProfileState>
     func restore() async throws -> AuthProblem?
     func signIn(email: String, password: String) async throws -> AuthProblem?
-    func register(email: String, password: String) async throws -> AuthProblem?
+    func register(email: String, password: String, details: PersonalDetails) async throws -> AuthProblem?
     func confirm(email: String, code: String) async throws -> AuthProblem?
     func resend(email: String) async throws -> AuthProblem?
     func signOut() async throws -> AuthProblem?

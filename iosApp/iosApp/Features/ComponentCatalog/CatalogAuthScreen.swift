@@ -20,6 +20,7 @@
                 }
             }
             .onDisappear { viewModel.beginDismissal() }
+            .errorFeedback(viewModel.errorFeedback)
             .presentationSizing(.form)
             .presentationDetents([.large])
             .presentationDragIndicator(.hidden)
@@ -89,7 +90,7 @@
                 } footer: {
                     VStack(alignment: .leading, spacing: 8) {
                         if let message = viewModel.message {
-                            AppFormMessage(title: LocalizedStringKey(message), isError: message.hasSuffix("Error"))
+                            AppFormMessage(title: LocalizedStringKey(message), isError: viewModel.hasError)
                                 .accessibilityIdentifier("kit.message")
                         } else if step != .login {
                             Text(
@@ -112,8 +113,9 @@
                         AppFormActions {
                             if step == .confirm && viewModel.isBusy {
                                 ProgressView("common.loading").frame(maxWidth: .infinity)
-                            } else if viewModel.message == "kit.codeError" && viewModel.code.count == 6 {
-                                AppActionButton(title: "auth.retry", emphasis: .text, action: viewModel.submit)
+                            } else if viewModel.canRetryCodeVerification {
+                                AppActionButton(
+                                    title: "auth.retryCodeVerification", emphasis: .text, action: viewModel.submit)
                             }
                             if step == .confirm {
                                 AppActionButton(
@@ -143,7 +145,9 @@
             }
             .onDisappear { firstFieldFocused = false }
             .onChange(of: viewModel.isBusy) { _, busy in
-                if !busy && step == .confirm && step == viewModel.step { firstFieldFocused = true }
+                guard step == .confirm && step == viewModel.step else { return }
+
+                firstFieldFocused = !busy && viewModel.shouldRestoreCodeFocus
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -162,10 +166,6 @@
                         isBusy: viewModel.isBusy, isEnabled: viewModel.canSubmit,
                         identifier: "kit.submit", action: viewModel.submit
                     )
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    AppKeyboardDismissButton()
                 }
             }
         }

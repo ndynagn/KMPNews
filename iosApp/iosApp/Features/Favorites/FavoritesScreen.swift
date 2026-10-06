@@ -34,8 +34,10 @@ struct FavoritesScreen: View {
                 return
             }
             loadedProfile = profile
-            if actions.savingID == nil { await viewModel.refresh() }
+            if actions.savingID == nil { await viewModel.refresh(userInitiated: false) }
         }
+        .errorFeedback(viewModel.errorFeedback, isEnabled: !isShowingArticle)
+        .onDisappear { viewModel.discardPendingFeedback() }
         .onChange(of: isShowingArticle) { _, showing in
             if showing { returningFromArticle = true }
         }

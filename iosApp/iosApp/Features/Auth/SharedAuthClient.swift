@@ -17,6 +17,9 @@ final class SharedAuthClient: AuthClient {
         if resend {
             issue = validator.email(email: input.email)
         } else {
+            if input.step == .register && !SharedProfileClient.shared(input.details).isValid() {
+                return "profile.namesRequired"
+            }
             switch input.step {
             case .signIn: issue = validator.login(email: input.email, password: input.password)
             case .register, .newPassword:
@@ -24,6 +27,7 @@ final class SharedAuthClient: AuthClient {
                     email: input.email, password: input.password, repeatedPassword: input.repeatPassword)
             case .recovery: issue = validator.email(email: input.email)
             case .confirm, .recoveryCode: issue = validator.confirmation(email: input.email, code: input.code)
+            case .registrationPhoto: return nil
             }
         }
         guard let issue else { return nil }
@@ -65,8 +69,12 @@ final class SharedAuthClient: AuthClient {
         Self.problem(try await authRepository.signIn(email: email, password: password).failure)
     }
 
-    func register(email: String, password: String) async throws -> AuthProblem? {
-        Self.problem(try await authRepository.register(email: email, password: password).failure)
+    func register(email: String, password: String, details: PersonalDetails) async throws -> AuthProblem? {
+        Self.problem(
+            try await authRepository.registerWithProfile(
+                email: email, password: password,
+                details: SharedProfileClient.shared(details)
+            ).failure)
     }
 
     func confirm(email: String, code: String) async throws -> AuthProblem? {

@@ -143,18 +143,8 @@ final class ComponentCatalogUITests: XCTestCase {
     }
 
     @MainActor
-    private func hideKeyboard(_ app: XCUIApplication) {
-        let buttons = app.buttons.matching(identifier: "Скрыть клавиатуру").allElementsBoundByIndex
-        guard let button = buttons.first(where: { $0.isHittable }) else {
-            XCTFail("The keyboard dismiss action must be reachable")
-            return
-        }
-        button.tap()
-    }
-
-    @MainActor
     private func assertLoadingGeometry(_ app: XCUIApplication) {
-        let button = app.buttons["Войти"]
+        let button = app.collectionViews.buttons["Войти"].firstMatch
         let initialFrame = button.frame
 
         XCTAssertGreaterThan(initialFrame.height, 0)

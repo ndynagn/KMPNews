@@ -5,6 +5,7 @@ import Observation
 @MainActor @Observable
 final class SearchViewModel {
     private(set) var state = SearchState()
+    private(set) var errorFeedback = 0
     private let client: any SearchClient
     private let sleep: (Duration) async throws -> Void
     private var task: Task<Void, Never>?
@@ -39,7 +40,7 @@ final class SearchViewModel {
             }
             state.isAppending = false
         case .submit:
-            if state.isWaiting { start(.first, debounce: false) }
+            if state.isWaiting { start(.first, debounce: false, userInitiated: true) }
         case .loadMore:
             guard task == nil, state.canAppend, let cursor = state.nextCursor else { return }
 
@@ -48,9 +49,9 @@ final class SearchViewModel {
             guard task == nil, !state.isWaiting else { return }
 
             if state.appendFailure?.canRetry == true, let cursor = state.nextCursor {
-                start(.append(cursor), debounce: false)
+                start(.append(cursor), debounce: false, userInitiated: true)
             } else if case .failed(let problem) = state.phase, problem.canRetry, normalizedQuery != nil {
-                start(.first, debounce: false)
+                start(.first, debounce: false, userInitiated: true)
             }
         }
     }
@@ -98,7 +99,7 @@ final class SearchViewModel {
         task = nil
     }
 
-    private func start(_ operation: Operation, debounce: Bool) {
+    private func start(_ operation: Operation, debounce: Bool, userInitiated: Bool = false) {
         guard active else { return }
 
         cancelTask()
@@ -116,7 +117,7 @@ final class SearchViewModel {
                 self.needsDebounce = false
                 self.state.isWaiting = false
                 guard let query else {
-                    self.finish(.failed(.invalidQuery), operation: .first)
+                    self.finish(.failed(.invalidQuery), operation: .first, userInitiated: userInitiated)
                     return
                 }
 
@@ -138,15 +139,15 @@ final class SearchViewModel {
 
                 guard !Task.isCancelled, revision == self.generation else { return }
 
-                self.finish(result, operation: operation)
+                self.finish(result, operation: operation, userInitiated: userInitiated)
             } catch {
                 guard !Task.isCancelled, let self, revision == self.generation else { return }
-                self.finish(.failed(.network), operation: operation)
+                self.finish(.failed(.network), operation: operation, userInitiated: userInitiated)
             }
         }
     }
 
-    private func finish(_ result: SearchPageResult, operation: Operation) {
+    private func finish(_ result: SearchPageResult, operation: Operation, userInitiated: Bool) {
         task = nil
         pending = nil
         state.isWaiting = false
@@ -162,6 +163,7 @@ final class SearchViewModel {
             if case .append(let previous) = operation, cursor == previous { state.nextCursor = nil }
             state.phase = .loaded
         case .failed(let problem):
+            if userInitiated { errorFeedback += 1 }
             switch operation {
             case .first:
                 state.phase = .failed(problem)

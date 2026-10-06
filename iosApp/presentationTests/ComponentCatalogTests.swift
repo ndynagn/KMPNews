@@ -23,6 +23,7 @@ struct ComponentCatalogTests {
         await verifyRegistrationAndConfirmation()
         await verifyRecoveryAndCloseCancellation()
         await verifyBackCancellation()
+        await verifyVerificationAndResendFailures()
 
         print(
             "PASS: catalog registration, confirmation, errors, resend, recovery, "
@@ -144,6 +145,39 @@ struct ComponentCatalogTests {
         for _ in 0..<20 { await Task.yield() }
 
         precondition(model.path.isEmpty && model.password.isEmpty && !model.isBusy)
+        model.close()
+    }
+
+    @MainActor
+    private static func verifyVerificationAndResendFailures() async {
+        let gate = RequestGate()
+        let model = CatalogAuthViewModel(initialStep: .confirm, pause: { await gate.pause($0) })
+        model.setOutcome(.network)
+
+        model.setCode("123456")
+        await wait { gate.calls == 1 }
+        gate.finish()
+        await wait { !model.isBusy }
+
+        precondition(model.hasError && model.canRetryCodeVerification)
+        precondition(!model.shouldRestoreCodeFocus && model.errorFeedback == 1)
+
+        model.setOutcome(.error)
+        model.submit()
+        await wait { gate.calls == 2 }
+        gate.finish()
+        await wait { !model.isBusy }
+
+        precondition(model.hasError && !model.canRetryCodeVerification)
+        precondition(model.shouldRestoreCodeFocus && model.errorFeedback == 2)
+
+        model.resend()
+        await wait { gate.calls == 3 }
+        gate.finish()
+        await wait { !model.isBusy }
+
+        precondition(model.hasError && !model.canRetryCodeVerification)
+        precondition(!model.shouldRestoreCodeFocus && model.errorFeedback == 3)
         model.close()
     }
 

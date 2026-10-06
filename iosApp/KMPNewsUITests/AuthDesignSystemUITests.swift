@@ -74,12 +74,14 @@ final class AuthDesignSystemUITests: XCTestCase {
         XCTAssertFalse(app.buttons["auth.submit"].exists)
         capture("auth-recovery-profile")
         app.buttons["profile.logout"].tap()
+        app.alerts.buttons["Выйти"].tap()
         XCTAssertTrue(app.buttons["profile.register"].waitForExistence(timeout: 5))
         app.buttons["profile.register"].tap()
         app.textFields["auth.email"].tap()
         app.textFields["auth.email"].typeText("reader@example.test")
         hideKeyboard(app)
         fillPasswords(app)
+        enterRegistrationNames(firstName: "Александр", lastName: "Иванов", in: app)
         capture("auth-registration-design-system")
         app.buttons["auth.submit"].tap()
         XCTAssertTrue(app.textFields["auth.code"].waitForExistence(timeout: 5))
@@ -88,6 +90,7 @@ final class AuthDesignSystemUITests: XCTestCase {
         app.typeText("012345")
         XCTAssertTrue(app.buttons["profile.logout"].waitForExistence(timeout: 5))
         app.buttons["profile.logout"].tap()
+        app.alerts.buttons["Выйти"].tap()
         XCTAssertTrue(app.buttons["profile.login"].waitForExistence(timeout: 5))
         openLogin(app)
         app.textFields["auth.email"].tap()
@@ -260,17 +263,14 @@ final class AuthDesignSystemUITests: XCTestCase {
     @MainActor private func fillPasswords(_ app: XCUIApplication) {
         for identifier in ["auth.password", "auth.repeatPassword"] {
             let field = app.secureTextFields[identifier]
-            field.tap()
-            field.typeText("fixture-password")
+            for _ in 0..<5 {
+                if field.isHittable { break }
+                app.swipeUp()
+            }
+
+            enterNewPassword("fixture-password", into: field, in: app)
             if identifier == "auth.password" { capture("auth-password-keyboard") }
             hideKeyboard(app)
         }
-    }
-
-    @MainActor private func hideKeyboard(_ app: XCUIApplication) {
-        let keyboardPopover = app.otherElements["PopoverDismissRegion"]
-        if keyboardPopover.exists { keyboardPopover.tap() }
-        let hide = app.buttons["Скрыть клавиатуру"].firstMatch
-        if hide.waitForExistence(timeout: 2), hide.isHittable { hide.tap() }
     }
 }

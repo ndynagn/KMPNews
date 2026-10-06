@@ -1,6 +1,21 @@
 import Foundation
 
 @MainActor
+private final class RegistrationProfileStub: ProfileClient {
+    var saves = 0
+    var shouldFail = true
+
+    func validate(_ details: PersonalDetails) -> String? { nil }
+
+    func fetch() async throws -> ProfileLoadResult { ProfileLoadResult() }
+
+    func save(details: PersonalDetails, photo: Data?, removePhoto: Bool) async throws -> ProfileLoadResult {
+        saves += 1
+        return ProfileLoadResult(errorKey: shouldFail ? "auth.network" : nil)
+    }
+}
+
+@MainActor
 private final class FakeAuthClient: AuthClient {
     var recoveries: [FakeRecoveryClient] = []
     var logins = 0
@@ -51,7 +66,7 @@ private final class FakeAuthClient: AuthClient {
         return loginProblem
     }
 
-    func register(email: String, password: String) async throws -> AuthProblem? {
+    func register(email: String, password: String, details: PersonalDetails) async throws -> AuthProblem? {
         if shouldDelayRegistration {
             do {
                 try await Task.sleep(for: .seconds(60))
@@ -121,6 +136,7 @@ struct AuthPresentationTests {
     static func main() async {
         verifyPrimaryActions()
         await verifyRegistrationAndConfirmation()
+        await verifyRegistrationPhotoRetryAndSkip()
         await verifyNavigationClearsSecrets()
         await verifyUnconfirmedLogin()
         await verifyLoginCancellation()
@@ -136,6 +152,45 @@ struct AuthPresentationTests {
                 + "duplicate suppression, cancellation, logout warning, recovery navigation, "
                 + "storage failure and late-response isolation"
         )
+    }
+
+    @MainActor
+    private static func verifyRegistrationPhotoRetryAndSkip() async {
+        let details = PersonalDetails(firstName: "Анна-Мария", lastName: "O’Connor")
+        let profiles = RegistrationProfileStub()
+        let auth = FakeAuthClient()
+        let model = AuthViewModel(client: auth, step: .register, profileClient: profiles)
+        model.onEvent(.details(details))
+        model.onEvent(.photo(Data([1, 2, 3])))
+        model.onEvent(.email("reader@example.test"))
+        model.onEvent(.submit)
+        await settle()
+        precondition(model.state.details == details && model.state.photo != nil)
+        model.onEvent(.code("012345"))
+        await settle()
+        precondition(model.state.step == .registrationPhoto && !model.state.isComplete)
+        precondition(model.state.password.isEmpty && model.state.code.isEmpty)
+        precondition(profiles.saves == 1 && auth.confirmations == 1)
+        model.pop(toDepth: 0)
+        precondition(model.state.step == .registrationPhoto)
+        profiles.shouldFail = false
+        model.onEvent(.submit)
+        await settle()
+        precondition(model.state.isComplete && model.state.photo == nil)
+        precondition(profiles.saves == 2 && auth.confirmations == 1)
+        model.close()
+
+        profiles.shouldFail = true
+        let skipped = AuthViewModel(client: FakeAuthClient(), step: .register, profileClient: profiles)
+        skipped.onEvent(.details(details))
+        skipped.onEvent(.photo(Data([1])))
+        skipped.onEvent(.submit)
+        await settle()
+        skipped.onEvent(.code("012345"))
+        await settle()
+        skipped.onEvent(.skipPhoto)
+        precondition(skipped.state.isComplete && skipped.state.photo == nil)
+        skipped.close()
     }
 
     private static func verifyPrimaryActions() {

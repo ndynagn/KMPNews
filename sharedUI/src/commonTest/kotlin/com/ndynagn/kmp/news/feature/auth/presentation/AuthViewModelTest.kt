@@ -10,6 +10,7 @@ import com.ndynagn.kmp.news.feature.auth.domain.AuthRepository
 import com.ndynagn.kmp.news.feature.auth.domain.AuthResult
 import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
 import com.ndynagn.kmp.news.feature.auth.domain.PasswordRecovery
+import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -102,8 +103,11 @@ private class FakeFormAuth : AuthRepository {
     var logins = 0
     var cancelled = false
     var gate: CompletableDeferred<Unit>? = null
+
     override fun passwordRecovery(): PasswordRecovery = error("Recovery is not used by these Compose form tests")
+
     override suspend fun restore() = AuthResult()
+
     override suspend fun signIn(email: String, password: String): AuthResult {
         logins++
         try {
@@ -113,11 +117,18 @@ private class FakeFormAuth : AuthRepository {
         }
         return AuthResult(AuthFailure.EMAIL_UNCONFIRMED)
     }
+
     override suspend fun register(email: String, password: String) = AuthResult()
+
+    override suspend fun registerWithProfile(email: String, password: String, details: ProfileDetails) =
+        register(email, password)
+
     override suspend fun confirm(email: String, code: String) = AuthResult()
+
     override suspend fun resend(email: String): AuthResult {
         resends++
         return AuthResult()
     }
+
     override suspend fun signOut() = AuthResult()
 }

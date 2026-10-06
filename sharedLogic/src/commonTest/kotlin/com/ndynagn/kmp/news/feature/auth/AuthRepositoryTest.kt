@@ -12,6 +12,7 @@ import com.ndynagn.kmp.news.feature.auth.data.StoredAuthSession
 import com.ndynagn.kmp.news.feature.auth.data.authJson
 import com.ndynagn.kmp.news.feature.auth.domain.AuthFailure
 import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
+import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
 import com.ndynagn.kmp.news.network.CredentialsResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
@@ -391,7 +392,9 @@ class AuthRepositoryTest {
 private class FakeAuthStorage(var value: String? = null) : AuthSessionStorage {
     var failRead = false
     var failWrite = false
+
     override fun read() = AuthStorageRead(value, failRead)
+
     override fun write(value: String?): Boolean {
         if (failWrite) return false
         this.value = value
@@ -419,36 +422,48 @@ private class FakeAuthRemote : AuthRemoteSource {
     val refreshStarted = CompletableDeferred<Unit>()
     val loginStarted = CompletableDeferred<Unit>()
     private fun token() = AuthResponse.Success(AuthTokenDto("new-access", "new-refresh", 3600, user))
+
     override suspend fun signIn(email: String, password: String): AuthResponse<AuthTokenDto> {
         loginStarted.complete(Unit)
         loginGate?.await()
         return token()
     }
+
     override suspend fun register(email: String, password: String) = AuthResponse.Success(Unit)
+
+    override suspend fun registerWithProfile(email: String, password: String, details: ProfileDetails) =
+        register(email, password)
+
     override suspend fun confirm(email: String, code: String): AuthResponse<AuthTokenDto> {
         this.code = code
         return token()
     }
+
     override suspend fun resend(email: String) = AuthResponse.Success(Unit)
+
     override suspend fun requestRecovery(email: String) = AuthResponse.Success(Unit)
+
     override suspend fun verifyRecovery(email: String, code: String): AuthResponse<AuthTokenDto> {
         this.code = code
         recoveryStarted.complete(Unit)
         if (ignoreRecoveryCancellation) withContext(NonCancellable) { recoveryGate?.await() } else recoveryGate?.await()
         return token()
     }
+
     override suspend fun resetPassword(token: String, password: String): AuthResponse<AuthUserDto> {
         this.password = password
         resetStarted.complete(Unit)
         resetGate?.await()
         return resetFailure?.let { AuthResponse.Failed(it) } ?: AuthResponse.Success(user)
     }
+
     override suspend fun refresh(token: String): AuthResponse<AuthTokenDto> {
         refreshes++
         refreshStarted.complete(Unit)
         refreshGate?.await()
         return refreshFailure?.let { AuthResponse.Failed(it) } ?: token()
     }
+
     override suspend fun user(token: String): AuthResponse<AuthUserDto> = if (rejectOldAccess &&
         token == "old-access"
     ) {
@@ -456,6 +471,7 @@ private class FakeAuthRemote : AuthRemoteSource {
     } else {
         AuthResponse.Success(user)
     }
+
     override suspend fun logout(token: String): AuthResponse<Unit> {
         logouts++
         return logoutFailure?.let { AuthResponse.Failed(it) } ?: AuthResponse.Success(Unit)

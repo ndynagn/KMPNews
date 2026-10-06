@@ -7,6 +7,7 @@ import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
 import com.ndynagn.kmp.news.feature.auth.domain.AuthUser
 import com.ndynagn.kmp.news.feature.auth.domain.PasswordRecovery
 import com.ndynagn.kmp.news.feature.auth.domain.PasswordResetResult
+import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
 import com.ndynagn.kmp.news.network.AccountCredentials
 import com.ndynagn.kmp.news.network.AccountIdentity
 import com.ndynagn.kmp.news.network.AccountSessionAccess
@@ -105,6 +106,12 @@ internal class PersistentAuthRepository(
 
     override suspend fun register(email: String, password: String): AuthResult =
         remote.register(email, password).result()
+
+    override suspend fun registerWithProfile(email: String, password: String, details: ProfileDetails): AuthResult {
+        if (!details.isValid()) return AuthResult(AuthFailure.SERVICE)
+
+        return remote.registerWithProfile(email, password, details.normalized()).result()
+    }
 
     override suspend fun confirm(email: String, code: String): AuthResult = authenticate { remote.confirm(email, code) }
 

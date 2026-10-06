@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var previousSection: HomeSection = .news
     @State private var homeViewModel: HomeViewModel
     private let authClient: any AuthClient
+    private let profileClient: any ProfileClient
     @State private var profileViewModel: ProfileViewModel
     @State private var authViewModel: AuthViewModel?
     @State private var favoriteAuthViewModel: AuthViewModel?
@@ -23,17 +24,23 @@ struct ContentView: View {
         let homeViewModel = HomeViewModel(services: services)
         _homeViewModel = State(initialValue: homeViewModel)
         let client: any AuthClient
+        let profiles: any ProfileClient
         #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--auth-ui-fixture") {
-                client = AuthUITestClient()
+                let fixture = ProfileUITestClient()
+                profiles = fixture
+                client = AuthUITestClient(profileClient: fixture)
             } else {
                 client = SharedAuthClient(authRepository: homeViewModel.authDependencies.authRepository)
+                profiles = SharedProfileClient(repository: homeViewModel.authDependencies.profileRepository)
             }
         #else
             client = SharedAuthClient(authRepository: homeViewModel.authDependencies.authRepository)
+            profiles = SharedProfileClient(repository: homeViewModel.authDependencies.profileRepository)
         #endif
         authClient = client
-        _profileViewModel = State(initialValue: ProfileViewModel(client: client))
+        profileClient = profiles
+        _profileViewModel = State(initialValue: ProfileViewModel(client: client, profiles: profiles))
     }
 
     var body: some View {
@@ -91,17 +98,20 @@ struct ContentView: View {
         } profile: {
             NavigationStack {
                 ProfileScreen(
+                    viewModel: profileViewModel, profileClient: profileClient,
                     state: profileViewModel.state, notice: profileViewModel.notice,
                     isBusy: profileViewModel.isBusy,
                     onLogin: { presentAuth(.signIn) }, onRegister: { presentAuth(.register) },
-                    onRetry: profileViewModel.restore, onLogout: profileViewModel.signOut
+                    onRetry: { profileViewModel.restore(userInitiated: true) }, onLogout: profileViewModel.signOut
                 )
                 .navigationTitle("home.profile").navigationBarTitleDisplayMode(.large)
                 #if DEBUG
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
-                            Button("kit.title") { showsComponentCatalog = true }
-                            .accessibilityIdentifier("kit.entry")
+                            if profileViewModel.state == .guest {
+                                Button("kit.title") { showsComponentCatalog = true }
+                                .accessibilityIdentifier("kit.entry")
+                            }
                         }
                     }
                     .sheet(isPresented: $showsComponentCatalog) {
@@ -146,7 +156,7 @@ struct ContentView: View {
             onDismiss: {
                 homeViewModel.favoriteSaveViewModel?.presentationDidDismiss()
                 if case .authentication(let step) = homeViewModel.favoriteSaveViewModel?.presentation {
-                    favoriteAuthViewModel = AuthViewModel(client: authClient, step: step)
+                    favoriteAuthViewModel = AuthViewModel(client: authClient, step: step, profileClient: profileClient)
                 }
             }
         ) {
@@ -179,6 +189,10 @@ struct ContentView: View {
             }
         }
         .sensoryFeedback(.success, trigger: homeViewModel.favoriteSaveViewModel?.addedFeedback ?? 0)
+        .errorFeedback(
+            homeViewModel.favoriteSaveViewModel?.errorFeedback ?? 0,
+            isEnabled: authViewModel == nil && favoriteAuthViewModel == nil
+        )
         .toast(isPresenting: favoriteAddedNotice, duration: 0, tapToDismiss: false) {
             AlertToast(
                 displayMode: .hud, type: .complete(.blue),
@@ -208,6 +222,9 @@ struct ContentView: View {
             }
         }
         .task { await profileViewModel.observe() }
+        #if DEBUG
+            .preferredColorScheme(profileFixtureColorScheme)
+        #endif
         .onAppear {
             homeViewModel.prepare()
             articleNavigation.accountChanged(profileViewModel.state)
@@ -215,8 +232,17 @@ struct ContentView: View {
             profileViewModel.restore()
             updateActivity()
         }
-        .onChange(of: selected) { _, _ in updateActivity() }
-        .onChange(of: articleNavigation.articleIDs) { _, _ in updateMembership() }
+        .onChange(of: selected) { _, _ in
+            homeViewModel.favoriteSaveViewModel?.discardPendingFeedback()
+            homeViewModel.favoritesViewModel?.discardPendingFeedback()
+            profileViewModel.discardPendingFeedback()
+            updateActivity()
+        }
+        .onChange(of: articleNavigation.articleIDs) { _, _ in
+            homeViewModel.favoriteSaveViewModel?.discardPendingFeedback()
+            homeViewModel.favoritesViewModel?.discardPendingFeedback()
+            updateMembership()
+        }
         .onChange(of: homeViewModel.feedViewModel?.state.snapshot?.articles.map(\.id)) { _, _ in updateMembership() }
         .onChange(of: homeViewModel.searchViewModel.state.articles.map(\.id)) { _, _ in updateMembership() }
         .onChange(of: homeViewModel.favoriteSaveViewModel?.savingID) { _, id in
@@ -226,6 +252,11 @@ struct ContentView: View {
             if loading == false { updateMembership() }
         }
         .onChange(of: scenePhase) { _, phase in
+            if phase != .active {
+                homeViewModel.favoriteSaveViewModel?.discardPendingFeedback()
+                homeViewModel.favoritesViewModel?.discardPendingFeedback()
+                profileViewModel.discardPendingFeedback()
+            }
             updateActivity()
             if phase == .active { profileViewModel.restore() }
         }
@@ -288,12 +319,23 @@ struct ContentView: View {
     }
 
     private func presentAuth(_ step: AuthStep) {
-        authViewModel = AuthViewModel(client: authClient, step: step)
+        authViewModel = AuthViewModel(client: authClient, step: step, profileClient: profileClient)
     }
+
+    #if DEBUG
+        private var profileFixtureColorScheme: ColorScheme? {
+            let arguments = ProcessInfo.processInfo.arguments
+            guard arguments.contains("--auth-ui-fixture") else { return nil }
+            if arguments.contains("--profile-ui-light") { return .light }
+            if arguments.contains("--profile-ui-dark") { return .dark }
+            return nil
+        }
+    #endif
 
     private func finishAuthDismissal() {
         dismissingAuthViewModel?.close()
         dismissingAuthViewModel = nil
+        profileViewModel.refreshAfterAuthentication()
     }
 
     private var favoritePresentation: Binding<Bool> {

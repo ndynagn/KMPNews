@@ -36,11 +36,11 @@ struct AuthPrimaryAction {
         case .newPassword:
             titleKey = "auth.save_password"
             symbol = "checkmark"
-        case .confirm, .recoveryCode: return nil
+        case .confirm, .recoveryCode, .registrationPhoto: return nil
         }
 
         return Self(
             titleKey: titleKey, symbol: symbol, identifier: "auth.submit", event: .submit,
-            isEnabled: state.step != .recovery || state.resendSeconds == 0)
+            isEnabled: !state.isPreparingPhoto && (state.step != .recovery || state.resendSeconds == 0))
     }
 }

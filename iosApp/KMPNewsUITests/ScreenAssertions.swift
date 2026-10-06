@@ -2,6 +2,69 @@ import XCTest
 
 extension XCTestCase {
     @MainActor
+    func enterRegistrationNames(firstName: String, lastName: String, in app: XCUIApplication) {
+        for (identifier, value) in [("profile.lastName", lastName), ("profile.firstName", firstName)] {
+            let field = app.textFields[identifier]
+            for _ in 0..<5 {
+                if field.isHittable { break }
+                app.swipeDown()
+            }
+
+            field.tap()
+            field.typeText(value)
+        }
+    }
+
+    @MainActor
+    func hideKeyboard(_ app: XCUIApplication) {
+        let popover = app.otherElements["PopoverDismissRegion"]
+        if popover.exists { popover.tap() }
+
+        let keyboard = app.keyboards.firstMatch
+
+        guard keyboard.exists else { return }
+
+        let done = keyboard.descendants(matching: .any).matching(
+            NSPredicate(format: "label IN %@", ["Done", "Готово"])
+        ).firstMatch
+        let systemDismiss = keyboard.descendants(matching: .any).matching(
+            NSPredicate(format: "label IN %@", ["Hide keyboard", "Скрыть клавиатуру"])
+        ).firstMatch
+        if done.exists, done.isHittable {
+            done.tap()
+        } else if systemDismiss.exists, systemDismiss.isHittable {
+            systemDismiss.tap()
+        } else {
+            let form = app.collectionViews.firstMatch
+            for _ in 0..<3 where keyboard.exists {
+                form.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+                    .press(
+                        forDuration: 0.1,
+                        thenDragTo: form.coordinate(
+                            withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85)))
+            }
+        }
+
+        XCTAssertTrue(keyboard.waitForNonExistence(timeout: 3))
+    }
+
+    @MainActor
+    func enterNewPassword(_ value: String, into field: XCUIElement, in app: XCUIApplication) {
+        field.tap()
+        field.typeText(String(value.prefix(1)))
+
+        // iOS may present a system strong-password sheet after the first character.
+        if app.buttons["GenerateStrongPasswordButton"].waitForExistence(timeout: 2) {
+            app.buttons["xmark"].firstMatch.tap()
+            field.tap()
+            field.typeText(value)
+            return
+        }
+
+        field.typeText(String(value.dropFirst()))
+    }
+
+    @MainActor
     func selectSection(_ title: String, in app: XCUIApplication) {
         func tapItem() {
             if app.tabBars.buttons[title].exists {

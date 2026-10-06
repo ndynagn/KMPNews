@@ -20,6 +20,7 @@ struct FeedScreen: View {
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .refreshable { await viewModel.refresh() }
+        .errorFeedback(viewModel.errorFeedback)
         .onChange(of: viewModel.state.canAppend) { _, _ in loadMoreIfNeeded() }
         .onChange(of: viewModel.state.snapshot?.articles.count) { _, _ in loadMoreIfNeeded() }
     }

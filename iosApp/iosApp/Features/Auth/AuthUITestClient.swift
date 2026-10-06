@@ -7,8 +7,11 @@
         private var state: ProfileState = .guest
         private var continuation: AsyncStream<ProfileState>.Continuation?
         private let arguments = ProcessInfo.processInfo.arguments
+        private let profileClient: ProfileUITestClient?
+        private var resendAttempts = 0
 
-        init() {
+        init(profileClient: ProfileUITestClient? = nil) {
+            self.profileClient = profileClient
             if arguments.contains("--auth-ui-profile-error") {
                 state = .unavailable(.storage)
             } else if arguments.contains("--auth-ui-signed-in") {
@@ -39,15 +42,15 @@
             return nil
         }
 
-        func register(email: String, password: String) async throws -> AuthProblem? {
+        func register(email: String, password: String, details: PersonalDetails) async throws -> AuthProblem? {
             try await pause()
+            profileClient?.register(email: email, details: details)
 
             return nil
         }
 
         func confirm(email: String, code: String) async throws -> AuthProblem? {
-            try await pause()
-            guard code == "012345" else { return .invalidCode }
+            if let problem = try await checkCode(code) { return problem }
 
             authorize(email)
 
@@ -56,6 +59,8 @@
 
         func resend(email: String) async throws -> AuthProblem? {
             try await pause()
+            resendAttempts += 1
+            if arguments.contains("--auth-ui-resend-error-once"), resendAttempts == 1 { return .network }
 
             return nil
         }
@@ -73,6 +78,23 @@
             try await Task.sleep(for: .milliseconds(arguments.contains("--auth-ui-slow") ? 8_000 : 150))
         }
 
+        private func checkCode(_ code: String) async throws -> AuthProblem? {
+            if arguments.contains("--auth-ui-code-errors") {
+                try await Task.sleep(for: .seconds(arguments.contains("--auth-ui-slow-code") ? 8 : 3))
+                switch code {
+                case "222222": return .expired
+                case "333333": return .network
+                case "444444": return .service
+                case "555555": return .rateLimited
+                default: break
+                }
+            } else {
+                try await pause()
+            }
+
+            return code == "012345" ? nil : .invalidCode
+        }
+
         private func authorize(_ email: String) {
             state = .authenticated(email: email)
             continuation?.yield(state)
@@ -84,20 +106,25 @@
             private var email = ""
             private var isVerified = false
             private var isClosed = false
+            private var requestAttempts = 0
 
             init(owner: AuthUITestClient) { self.owner = owner }
 
             func requestCode(email: String) async throws -> AuthProblem? {
                 try await owner?.pause()
+                requestAttempts += 1
+                if owner?.arguments.contains("--auth-ui-resend-error-once") == true, requestAttempts == 2 {
+                    return .network
+                }
 
                 return isClosed ? .expired : nil
             }
 
             func verifyCode(email: String, code: String) async throws -> AuthProblem? {
-                try await owner?.pause()
+                let problem = try await owner?.checkCode(code)
                 guard !isClosed else { return .expired }
 
-                guard code == "012345" else { return .invalidCode }
+                if let problem { return problem }
 
                 self.email = email
                 isVerified = true

@@ -176,6 +176,7 @@ final class FavoriteSignInUITests: XCTestCase {
         XCTAssertTrue(save.waitForExistence(timeout: 10))
         save.tap()
         app.buttons["favorites.register"].tap()
+        enterRegistrationNames(firstName: "Александр", lastName: "Иванов", in: app)
         let email = app.textFields["auth.email"]
         XCTAssertTrue(email.waitForExistence(timeout: 5))
         email.tap()

@@ -19,6 +19,7 @@ struct SearchScreen: View {
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .scrollDismissesKeyboard(.interactively)
+        .errorFeedback(viewModel.errorFeedback)
         .onChange(of: viewModel.state.canAppend) { _, _ in loadMoreIfNeeded() }
         .onChange(of: viewModel.state.articles.map(\.id)) { _, ids in
             visibleIDs.formIntersection(ids)

@@ -7,6 +7,8 @@ final class FavoritesViewModel {
     private(set) var snapshot: FavoritesSnapshot?
     private(set) var isLoading = false
     private(set) var hasError = false
+    private(set) var errorFeedback = 0
+    private var feedbackGeneration = 0
     private var observer: Task<Void, Never>?
     private var request: Task<Void, Never>?
     private var generation = 0
@@ -68,8 +70,8 @@ final class FavoritesViewModel {
         }
     }
 
-    func refresh() async {
-        start(append: false)
+    func refresh(userInitiated: Bool = true) async {
+        start(append: false, userInitiated: userInitiated)
         await request?.value
     }
 
@@ -79,7 +81,9 @@ final class FavoritesViewModel {
         start(append: true)
     }
 
-    func retry() { start(append: failedAppend) }
+    func retry() { start(append: failedAppend, userInitiated: true) }
+
+    func discardPendingFeedback() { feedbackGeneration += 1 }
 
     func stop() {
         generation += 1
@@ -91,12 +95,13 @@ final class FavoritesViewModel {
         account = nil
     }
 
-    private func start(append: Bool) {
+    private func start(append: Bool, userInitiated: Bool = false) {
         guard account != nil, request == nil else { return }
 
         isLoading = true
         hasError = false
         let revision = generation
+        let feedbackOwner = feedbackGeneration
         request = Task { [weak self, client] in
             let result: FavoriteSaveResult
             do {
@@ -110,6 +115,9 @@ final class FavoritesViewModel {
             self.isLoading = false
             self.request = nil
             self.hasError = result != .saved && result != .busy
+            if self.hasError, userInitiated, feedbackOwner == self.feedbackGeneration {
+                self.errorFeedback += 1
+            }
             self.failedAppend = append
             if result == .saved, !append { self.retainedArticles = nil }
         }
