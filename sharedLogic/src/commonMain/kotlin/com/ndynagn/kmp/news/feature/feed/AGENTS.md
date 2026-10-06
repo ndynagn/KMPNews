@@ -1,7 +1,7 @@
 # Feed domain and data
 
 Scope: this feature. Follow the repository and sharedLogic instructions.
-The authoritative behavior is [the feed contract](../../../../../../../../../../docs/news-feed-data-domain-plan.md).
+The authoritative behavior is [the feed contract](../../../../../../../../../../docs/contracts/news-feed.md).
 
 - Keep English, unfiltered-country feed requests through the Supabase mediator
   and opaque cursor pagination. Provider parameters and secrets are server-owned.

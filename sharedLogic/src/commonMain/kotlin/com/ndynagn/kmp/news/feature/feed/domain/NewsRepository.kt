@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
  * One instance serializes mutations for one database. Overlapping refresh/append calls
  * return [FeedUpdateResult.AlreadyRunning] without queueing. Cancellation propagates;
  * a transaction committed before cancellation remains observable.
- * See [feed contract](../../../../../../../../../../../docs/news-feed-data-domain-plan.md) for the canonical feed contract.
+ * See [feed contract](../../../../../../../../../../../docs/contracts/news-feed.md) for the canonical feed contract.
  */
 interface NewsRepository {
     /**

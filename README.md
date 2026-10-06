@@ -55,11 +55,9 @@ is ad-hoc; registering an App ID is unnecessary. Distribution signing is not con
   :sharedLogic:jvmTest :androidApp:compileDebugKotlin
 ```
 
-The project uses `project.pbxproj`. The JSON migration was reversed through
-Xcode's Project Format > Property List because Kotlin Gradle Plugin 2.4.20
-requires the pbxproj file during IDE Sync. Native macOS, synchronized folders
-and direct Kotlin integration are retained; no diagnostic tasks are disabled.
-See [implementation results](docs/native-macos-implementation.md).
+The project uses `project.pbxproj`, required by the Kotlin Gradle Plugin during
+IDE Sync. Preserve Xcode serialization, synchronized folders and direct Kotlin
+integration; follow the [shared Apple project rules](iosApp/AGENTS.md).
 
 ## Engineering instructions and style
 
@@ -71,8 +69,8 @@ and [verification commands](docs/standards/verification.md).
 The [accepted stack](docs/standards/technology-stack.md) records Koin/Ktor/Room,
 Compose and Apple choices, MVVM/MVI ownership and the NewsData.io Free prototype
 boundary. Feed domain/data and its dependency integration are described in the
-[feed contract](docs/news-feed-data-domain-plan.md) and
-[validation record](docs/news-feed-validation.md). Presentation dependencies remain a later stage.
+[feed contract](docs/contracts/news-feed.md). Other active feature contracts are
+listed in the [instruction routing table](AGENTS.md#feature-contract-routing).
 
 Formatting is opt-in and applied only to intended files during adoption:
 
@@ -81,9 +79,10 @@ Formatting is opt-in and applied only to intended files during adoption:
 xcrun swift-format lint --strict --configuration .swift-format macosApp/ContentView.swift
 ```
 
-Full audits intentionally expose existing starter formatting debt; see
-[adoption results](docs/agent-guidelines-adoption.md). CI enforcement and bulk
-formatting are separate work.
+Full audits expose existing formatting debt; report current results separately
+from checks of task-specific changes. CI enforcement and bulk formatting are separate
+work. Keep run reports in chat/PR/MR and temporary artifacts outside the repository;
+see the [documentation lifecycle](AGENTS.md#documentation-lifecycle-and-naming).
 
 ## Feed domain/data development
 
