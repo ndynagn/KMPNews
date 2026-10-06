@@ -5,7 +5,7 @@ The public client URL is `https://awupjlsmdnbhpfbmykrv.supabase.co`.
 No authentication UI, server article cache, favorites or background polling is introduced.
 
 Server-side account preparation is documented separately in the
-[Auth contract](../docs/auth-contract.md). Auth does not gate the public feed.
+[Auth contract](../docs/contracts/auth.md). Auth does not gate the public feed.
 
 ## HTTP contract
 
@@ -108,7 +108,8 @@ Do not run destructive quota tests against a live project.
 Live smoke: one first-page request and one request using its returned cursor; report
 status/counts only. Verify missing key and unknown parameters without spending credits.
 Run Supabase Security Advisors, shared tests, Swift interop and affected client builds.
-See [implementation evidence](../docs/news-feed-proxy-validation.md).
+Report current commands, results and limitations in chat/PR/MR, with logs in a
+temporary directory outside the repository. See the [feed contract](../docs/contracts/news-feed.md).
 
 ## Operational limits
 

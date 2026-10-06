@@ -7,7 +7,7 @@ package com.ndynagn.kmp.news.feature.feed.domain
  * first-page update; null means never initialized, while empty success initializes it.
  * [hasMore] means a server cursor exists, not that append is currently permitted.
  * [isCacheLimitReached] reports local capacity independently; refresh remains available.
- * See [feed contract](../../../../../../../../../../../docs/news-feed-data-domain-plan.md), Cache and pagination.
+ * See [feed contract](../../../../../../../../../../../docs/contracts/news-feed.md), Cache and pagination.
  */
 data class FeedSnapshot(
     val articles: List<Article>,

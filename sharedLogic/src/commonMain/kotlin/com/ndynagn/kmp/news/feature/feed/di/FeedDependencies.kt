@@ -28,7 +28,7 @@ import kotlin.time.Clock
  * Owns one isolated graph and its resources; share it across consumers of one database.
  *
  * Cancel all consumer tasks before calling [close] once. See the repository's
- * [feed contract](../../../../../../../../../../../docs/news-feed-data-domain-plan.md), Public API and resource ownership.
+ * [feed contract](../../../../../../../../../../../docs/contracts/news-feed.md), Public API and resource ownership.
  */
 class FeedDependencies internal constructor(
     private val application: KoinApplication,

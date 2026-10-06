@@ -47,7 +47,7 @@ Dependency choices and admission gates: [accepted stack](../docs/standards/techn
   needs tests in the matching source set; common tests alone are insufficient.
 
 Feed implementations and tests across source sets follow the
-[feed contract](../docs/news-feed-data-domain-plan.md) and
+[feed contract](../docs/contracts/news-feed.md) and
 [feed instructions](src/commonMain/kotlin/com/ndynagn/kmp/news/feature/feed/AGENTS.md).
 The appleInteropTest fixtures are opt-in verification code, never normal framework APIs.
 

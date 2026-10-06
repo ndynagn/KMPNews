@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.first
  * Successful empty data is initialized. Observation failures are returned without a
  * network request. Cancellation propagates. Manual refresh calls [NewsRepository.refresh]
  * directly; rendering and background timers must not invoke this policy.
- * See [feed contract](../../../../../../../../../../../docs/news-feed-data-domain-plan.md), Refresh, concurrency and cancellation.
+ * See [feed contract](../../../../../../../../../../../docs/contracts/news-feed.md), Refresh, concurrency and cancellation.
  */
 class RefreshFeedIfNeeded(private val newsRepository: NewsRepository, private val clock: FeedClock) {
     /** Reads the local snapshot and either returns Fresh or delegates to the repository refresh. */
