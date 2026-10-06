@@ -13,7 +13,9 @@ struct ContentView: View {
             Text("KMPNews")
                 .font(.largeTitle.bold())
 
-            Button(viewModel.isGreetingVisible ? "Hide greeting" : "Show greeting") {
+            Button(
+                viewModel.isGreetingVisible ? LocalizedStringKey("greeting.hide") : LocalizedStringKey("greeting.show")
+            ) {
                 viewModel.toggleGreeting()
             }
             .buttonStyle(.borderedProminent)

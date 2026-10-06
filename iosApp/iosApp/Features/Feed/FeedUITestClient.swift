@@ -1,6 +1,5 @@
 #if DEBUG
     import Foundation
-    import UIKit
 
     /// Explicit UI-test fixture: local images and articles, with no transport or database access.
     @MainActor
@@ -22,14 +21,29 @@
         }
 
         init() {
-            let imageURL = Self.makeImage()
+            let imageURL = ArticleUITestImage.make()
+            let detailFixture = ProcessInfo.processInfo.arguments.contains("--article-ui-fixture")
+            let longArticle = ProcessInfo.processInfo.arguments.contains("--article-ui-long")
+            let longTitle = ProcessInfo.processInfo.arguments.contains("--article-ui-long-title")
+            let variedGrid = ProcessInfo.processInfo.arguments.contains("--grid-ui-varied")
 
             articles = (0..<24).map { index in
                 FeedArticle(
-                    id: "fixture-\(index)", title: "Тестовая новость \(index + 1): город и технологии",
-                    summary: "Fixture description must not appear on a card.",
+                    id: "fixture-\(index)",
+                    title: longTitle && index == 1
+                        ? "A detailed headline about cities, science and technology that must wrap naturally on narrow screens and remain readable without truncation."
+                        : variedGrid && index == 0
+                            ? "Short headline" : "Тестовая новость \(index + 1): город и технологии",
+                    summary: detailFixture && index == 2
+                        ? nil
+                        : longArticle
+                            ? (1...30).map { "Paragraph \($0). A long article summary for reading position checks." }
+                                .joined(separator: "\n\n")
+                            : "Fixture description must not appear on a card.",
                     imageURL: Self.imageURL(for: index, sampleURL: imageURL),
-                    source: "Демонстрационный источник", publishedAt: Date(timeIntervalSince1970: 1_700_000_000))
+                    source: variedGrid && index == 2 ? nil : "Демонстрационный источник",
+                    publishedAt: variedGrid && index == 2 ? nil : Date(timeIntervalSince1970: 1_700_000_000),
+                    articleURL: detailFixture && index != 2 ? "https://example.com/news/\(index)" : nil)
             }
         }
 
@@ -63,27 +77,6 @@
             case 0: return sampleURL
             case 1: return URL(fileURLWithPath: "/missing-news-fixture.png")
             default: return nil
-            }
-        }
-
-        private static func makeImage() -> URL? {
-            let renderer = UIGraphicsImageRenderer(size: CGSize(width: 600, height: 320))
-            let image = renderer.image { context in
-                UIColor.systemTeal.setFill()
-                context.fill(CGRect(x: 0, y: 0, width: 600, height: 320))
-                UIImage(systemName: "newspaper")?.withTintColor(.white, renderingMode: .alwaysOriginal)
-                    .draw(in: CGRect(x: 235, y: 95, width: 130, height: 130))
-            }
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("feed-ui-fixture.png")
-
-            guard let data = image.pngData() else { return nil }
-
-            do {
-                try data.write(to: url, options: .atomic)
-
-                return url
-            } catch {
-                return nil
             }
         }
     }

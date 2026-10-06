@@ -23,9 +23,11 @@ struct ComponentCatalogTests {
         await verifyRegistrationAndConfirmation()
         await verifyRecoveryAndCloseCancellation()
         await verifyBackCancellation()
+        await verifyVerificationAndResendFailures()
 
         print(
-            "PASS: catalog registration, confirmation, errors, resend, recovery, duplicate submission, back and close cancellation"
+            "PASS: catalog registration, confirmation, errors, resend, recovery, "
+                + "duplicate submission, back and close cancellation"
         )
     }
 
@@ -33,10 +35,10 @@ struct ComponentCatalogTests {
     private static func verifyRegistrationAndConfirmation() async {
         var date = Date(timeIntervalSince1970: 1000)
         let gate = RequestGate()
-        let model = CatalogAuthViewModel(now: { date }, pause: { await gate.pause($0) })
+        let model = CatalogAuthViewModel(initialStep: .register, now: { date }, pause: { await gate.pause($0) })
 
         model.setEmail("reader@example.test")
-        model.navigate(.register)
+        precondition(model.step == .register && model.path.isEmpty)
         model.setPassword("fixture-password")
         model.setRepeatedPassword("fixture-password")
 
@@ -69,7 +71,7 @@ struct ComponentCatalogTests {
 
         precondition(model.message == "kit.codeError" && !model.isCompleted)
 
-        model.setPath([.register])
+        model.setPath([])
 
         precondition(model.email == "reader@example.test" && model.code.isEmpty)
 
@@ -93,11 +95,13 @@ struct ComponentCatalogTests {
         gate.finish()
         await wait { model.isCompleted }
 
-        precondition(model.code.isEmpty)
-
+        precondition(model.code == "012345", "Keep the successful form visible until dismissal completes")
+        model.beginDismissal()
+        precondition(model.code == "012345")
         model.close()
 
         precondition(model.email.isEmpty && model.path.isEmpty && !model.isCompleted)
+        precondition(model.code.isEmpty)
     }
 
     @MainActor
@@ -132,9 +136,7 @@ struct ComponentCatalogTests {
         let model = CatalogAuthViewModel(pause: { await gate.pause($0) })
 
         model.setEmail("reader@example.test")
-        model.navigate(.register)
-        model.setPassword("secret")
-        model.setRepeatedPassword("secret")
+        model.navigate(.recovery)
         model.submit()
         await wait { gate.calls == 1 }
 
@@ -143,6 +145,39 @@ struct ComponentCatalogTests {
         for _ in 0..<20 { await Task.yield() }
 
         precondition(model.path.isEmpty && model.password.isEmpty && !model.isBusy)
+        model.close()
+    }
+
+    @MainActor
+    private static func verifyVerificationAndResendFailures() async {
+        let gate = RequestGate()
+        let model = CatalogAuthViewModel(initialStep: .confirm, pause: { await gate.pause($0) })
+        model.setOutcome(.network)
+
+        model.setCode("123456")
+        await wait { gate.calls == 1 }
+        gate.finish()
+        await wait { !model.isBusy }
+
+        precondition(model.hasError && model.canRetryCodeVerification)
+        precondition(!model.shouldRestoreCodeFocus && model.errorFeedback == 1)
+
+        model.setOutcome(.error)
+        model.submit()
+        await wait { gate.calls == 2 }
+        gate.finish()
+        await wait { !model.isBusy }
+
+        precondition(model.hasError && !model.canRetryCodeVerification)
+        precondition(model.shouldRestoreCodeFocus && model.errorFeedback == 2)
+
+        model.resend()
+        await wait { gate.calls == 3 }
+        gate.finish()
+        await wait { !model.isBusy }
+
+        precondition(model.hasError && !model.canRetryCodeVerification)
+        precondition(!model.shouldRestoreCodeFocus && model.errorFeedback == 3)
         model.close()
     }
 

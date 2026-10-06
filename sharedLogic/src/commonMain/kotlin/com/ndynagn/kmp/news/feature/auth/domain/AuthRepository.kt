@@ -1,5 +1,6 @@
 package com.ndynagn.kmp.news.feature.auth.domain
 
+import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
 import kotlinx.coroutines.flow.StateFlow
 
 /** Account identity; tokens never enter presentation models. */
@@ -47,6 +48,12 @@ interface AuthRepository {
 
     /** Requests signup confirmation without creating a local session or revealing account existence. */
     suspend fun register(email: String, password: String): AuthResult
+
+    /**
+     * Starts signup with trimmed personal names and an absent middle name when blank.
+     * Invalid names return [AuthFailure.SERVICE] without a remote request; [register] remains available.
+     */
+    suspend fun registerWithProfile(email: String, password: String, details: ProfileDetails): AuthResult
 
     /** Verifies a signup code exactly as entered, preserving leading zeroes, then persists its session. */
     suspend fun confirm(email: String, code: String): AuthResult

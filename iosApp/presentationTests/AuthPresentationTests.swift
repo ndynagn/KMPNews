@@ -1,6 +1,21 @@
 import Foundation
 
 @MainActor
+private final class RegistrationProfileStub: ProfileClient {
+    var saves = 0
+    var shouldFail = true
+
+    func validate(_ details: PersonalDetails) -> String? { nil }
+
+    func fetch() async throws -> ProfileLoadResult { ProfileLoadResult() }
+
+    func save(details: PersonalDetails, photo: Data?, removePhoto: Bool) async throws -> ProfileLoadResult {
+        saves += 1
+        return ProfileLoadResult(errorKey: shouldFail ? "auth.network" : nil)
+    }
+}
+
+@MainActor
 private final class FakeAuthClient: AuthClient {
     var recoveries: [FakeRecoveryClient] = []
     var logins = 0
@@ -51,7 +66,7 @@ private final class FakeAuthClient: AuthClient {
         return loginProblem
     }
 
-    func register(email: String, password: String) async throws -> AuthProblem? {
+    func register(email: String, password: String, details: PersonalDetails) async throws -> AuthProblem? {
         if shouldDelayRegistration {
             do {
                 try await Task.sleep(for: .seconds(60))
@@ -119,7 +134,9 @@ private final class FakeRecoveryClient: AuthRecoveryClient {
 struct AuthPresentationTests {
     @MainActor
     static func main() async {
+        verifyPrimaryActions()
         await verifyRegistrationAndConfirmation()
+        await verifyRegistrationPhotoRetryAndSkip()
         await verifyNavigationClearsSecrets()
         await verifyUnconfirmedLogin()
         await verifyLoginCancellation()
@@ -131,8 +148,69 @@ struct AuthPresentationTests {
         await verifyLogoutWarning()
 
         print(
-            "PASS: registration, validation, leading-zero code, cooldown, unconfirmed login, duplicate suppression, cancellation, logout warning, recovery navigation, storage failure and late-response isolation"
+            "PASS: registration, validation, leading-zero code, cooldown, unconfirmed login, "
+                + "duplicate suppression, cancellation, logout warning, recovery navigation, "
+                + "storage failure and late-response isolation"
         )
+    }
+
+    @MainActor
+    private static func verifyRegistrationPhotoRetryAndSkip() async {
+        let details = PersonalDetails(firstName: "Анна-Мария", lastName: "O’Connor")
+        let profiles = RegistrationProfileStub()
+        let auth = FakeAuthClient()
+        let model = AuthViewModel(client: auth, step: .register, profileClient: profiles)
+        model.onEvent(.details(details))
+        model.onEvent(.photo(Data([1, 2, 3])))
+        model.onEvent(.email("reader@example.test"))
+        model.onEvent(.submit)
+        await settle()
+        precondition(model.state.details == details && model.state.photo != nil)
+        model.onEvent(.code("012345"))
+        await settle()
+        precondition(model.state.step == .registrationPhoto && !model.state.isComplete)
+        precondition(model.state.password.isEmpty && model.state.code.isEmpty)
+        precondition(profiles.saves == 1 && auth.confirmations == 1)
+        model.pop(toDepth: 0)
+        precondition(model.state.step == .registrationPhoto)
+        profiles.shouldFail = false
+        model.onEvent(.submit)
+        await settle()
+        precondition(model.state.isComplete && model.state.photo == nil)
+        precondition(profiles.saves == 2 && auth.confirmations == 1)
+        model.close()
+
+        profiles.shouldFail = true
+        let skipped = AuthViewModel(client: FakeAuthClient(), step: .register, profileClient: profiles)
+        skipped.onEvent(.details(details))
+        skipped.onEvent(.photo(Data([1])))
+        skipped.onEvent(.submit)
+        await settle()
+        skipped.onEvent(.code("012345"))
+        await settle()
+        skipped.onEvent(.skipPhoto)
+        precondition(skipped.state.isComplete && skipped.state.photo == nil)
+        skipped.close()
+    }
+
+    private static func verifyPrimaryActions() {
+        var state = AuthUiState(step: .signIn)
+        precondition(AuthPrimaryAction.resolve(state)?.symbol == "checkmark")
+        state.needsConfirmation = true
+        guard case .confirmEmail = AuthPrimaryAction.resolve(state)?.event else {
+            preconditionFailure("Unconfirmed sign-in must offer email confirmation")
+        }
+        state = AuthUiState(step: .register)
+        precondition(AuthPrimaryAction.resolve(state)?.symbol == "arrow.right")
+        state = AuthUiState(step: .recovery, resendSeconds: 30)
+        precondition(AuthPrimaryAction.resolve(state)?.isEnabled == false)
+        for step in [AuthStep.confirm, .recoveryCode] {
+            precondition(AuthPrimaryAction.resolve(AuthUiState(step: step)) == nil)
+        }
+        state = AuthUiState(step: .newPassword, passwordWasChanged: true)
+        guard case .returnToLogin = AuthPrimaryAction.resolve(state)?.event else {
+            preconditionFailure("A changed password must never be submitted again")
+        }
     }
 
     @MainActor
@@ -204,7 +282,7 @@ struct AuthPresentationTests {
         let navigation = AuthViewModel(client: client, step: .signIn)
         navigation.onEvent(.email("reader@example.test"))
         navigation.onEvent(.password("discard-on-navigation"))
-        navigation.onEvent(.register)
+        navigation.onEvent(.recovery)
 
         precondition(navigation.state.history == [.signIn] && navigation.state.password.isEmpty)
 
@@ -257,10 +335,14 @@ struct AuthPresentationTests {
 
         precondition(client.logins == 1)
 
-        pending.close()
+        pending.beginDismissal()
         await settle()
 
         precondition(client.wasCancelled && !pending.state.isComplete)
+        precondition(pending.state.password == "password", "Keep the form intact during dismissal")
+        pending.onEvent(.password("late edit"))
+        precondition(pending.state.password == "password", "A closing flow must reject edits")
+        pending.close()
         precondition(pending.state.password.isEmpty)
     }
 
@@ -269,20 +351,19 @@ struct AuthPresentationTests {
         let client = FakeAuthClient()
 
         client.shouldDelayRegistration = true
-        let pendingRegistration = AuthViewModel(client: client, step: .signIn)
+        let pendingRegistration = AuthViewModel(client: client, step: .register)
         pendingRegistration.onEvent(.email("reader@example.test"))
-        pendingRegistration.onEvent(.register)
         pendingRegistration.onEvent(.password("discard-on-back"))
         pendingRegistration.onEvent(.submit)
         await settle()
 
         precondition(pendingRegistration.state.isBusy)
 
-        pendingRegistration.pop(toDepth: 0)
+        pendingRegistration.close()
         await settle()
 
         precondition(client.wasCancelled && !pendingRegistration.state.isBusy)
-        precondition(pendingRegistration.state.step == .signIn && pendingRegistration.state.history.isEmpty)
+        precondition(pendingRegistration.state.step == .register && pendingRegistration.state.history.isEmpty)
         precondition(pendingRegistration.state.password.isEmpty && !pendingRegistration.state.isComplete)
 
         pendingRegistration.close()
@@ -396,9 +477,10 @@ struct AuthPresentationTests {
         success.onEvent(.submit)
         await settle()
 
-        precondition(success.state.isComplete && success.state.password.isEmpty)
+        precondition(success.state.isComplete && success.state.password == "new password")
 
         success.close()
+        precondition(success.state.password.isEmpty)
     }
 
     @MainActor

@@ -7,6 +7,11 @@ import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
 import com.ndynagn.kmp.news.feature.auth.domain.AuthUser
 import com.ndynagn.kmp.news.feature.auth.domain.PasswordRecovery
 import com.ndynagn.kmp.news.feature.auth.domain.PasswordResetResult
+import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
+import com.ndynagn.kmp.news.network.AccountCredentials
+import com.ndynagn.kmp.news.network.AccountIdentity
+import com.ndynagn.kmp.news.network.AccountSessionAccess
+import com.ndynagn.kmp.news.network.CredentialsResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
@@ -26,9 +31,12 @@ internal class PersistentAuthRepository(
     private val remote: AuthRemoteSource,
     private val storage: AuthSessionStorage,
     private val clock: AuthClock,
-) : AuthRepository {
+) : AuthRepository,
+    AccountSessionAccess {
     private val mutableSession = MutableStateFlow<AuthSession>(AuthSession.Restoring)
     override val session = mutableSession.asStateFlow()
+    private val mutableAccount = MutableStateFlow<AccountIdentity?>(null)
+    override val account = mutableAccount.asStateFlow()
     private val sessionLock = Mutex()
     private val restoreLock = Mutex()
     private var generation = 0L
@@ -46,11 +54,20 @@ internal class PersistentAuthRepository(
         }
         if (cached == null) {
             sessionLock.withLock {
-                if (generation == version) mutableSession.value = AuthSession.Guest
+                if (generation == version) {
+                    stored = null
+                    mutableAccount.value = null
+                    mutableSession.value = AuthSession.Guest
+                }
             }
             return@withLock AuthResult()
         }
-        sessionLock.withLock { if (generation == version) stored = cached }
+        sessionLock.withLock {
+            if (generation == version) {
+                stored = cached
+                mutableAccount.value = AccountIdentity(cached.user.id, version)
+            }
+        }
         var active = cached
         if (cached.expiresAt <= clock.nowSeconds() + 30) {
             when (val result = remote.refresh(cached.refreshToken)) {
@@ -90,16 +107,72 @@ internal class PersistentAuthRepository(
     override suspend fun register(email: String, password: String): AuthResult =
         remote.register(email, password).result()
 
+    override suspend fun registerWithProfile(email: String, password: String, details: ProfileDetails): AuthResult {
+        if (!details.isValid()) return AuthResult(AuthFailure.SERVICE)
+
+        return remote.registerWithProfile(email, password, details.normalized()).result()
+    }
+
     override suspend fun confirm(email: String, code: String): AuthResult = authenticate { remote.confirm(email, code) }
 
     override suspend fun resend(email: String): AuthResult = remote.resend(email).result()
 
     override fun passwordRecovery(): PasswordRecovery = Recovery()
 
+    override suspend fun credentials(identity: AccountIdentity, rejectedToken: String?): CredentialsResult =
+        restoreLock.withLock {
+            val cached = sessionLock.withLock {
+                stored?.takeIf { mutableAccount.value == identity && generation == identity.generation }
+            } ?: return@withLock CredentialsResult.Failed(AuthFailure.SESSION_EXPIRED)
+
+            if (cached.expiresAt > clock.nowSeconds() + 30 && cached.accessToken != rejectedToken) {
+                return@withLock CredentialsResult.Ready(AccountCredentials(identity, cached.accessToken))
+            }
+
+            when (val response = remote.refresh(cached.refreshToken)) {
+                is AuthResponse.Failed -> {
+                    val result = restorationFailure(identity.generation, response.failure)
+                    CredentialsResult.Failed(result.failure ?: response.failure)
+                }
+
+                is AuthResponse.Success -> {
+                    if (response.value.user.id != identity.userId) {
+                        restorationFailure(identity.generation, AuthFailure.SESSION_EXPIRED)
+                        return@withLock CredentialsResult.Failed(AuthFailure.SESSION_EXPIRED)
+                    }
+
+                    val active = response.value.toStored()
+                    val saved = commit(identity.generation, active)
+                    saved.failure?.let { CredentialsResult.Failed(it) }
+                        ?: CredentialsResult.Ready(AccountCredentials(identity, active.accessToken))
+                }
+            }
+        }
+
+    override suspend fun commitIfCurrent(identity: AccountIdentity, commit: suspend () -> Unit): Boolean =
+        sessionLock.withLock {
+            currentCoroutineContext().ensureActive()
+            if (mutableAccount.value != identity || generation != identity.generation) return@withLock false
+
+            commit()
+            true
+        }
+
+    override suspend fun reject(identity: AccountIdentity, accessToken: String) {
+        restoreLock.withLock {
+            val current = sessionLock.withLock {
+                mutableAccount.value == identity && stored?.accessToken == accessToken
+            }
+
+            if (current) restorationFailure(identity.generation, AuthFailure.SESSION_EXPIRED)
+        }
+    }
+
     override suspend fun signOut(): AuthResult {
         // The generation changes before HTTP, so a delayed restore cannot resurrect this account.
         val (previous, recoveryTokens, cleared) = sessionLock.withLock {
             generation++
+            mutableAccount.value = null
             val tokens = recoveries.mapNotNull { it.invalidate() }
             recoveries.clear()
             val value = stored
@@ -118,7 +191,10 @@ internal class PersistentAuthRepository(
     }
 
     private suspend fun authenticate(request: suspend () -> AuthResponse<AuthTokenDto>): AuthResult {
-        val version = sessionLock.withLock { ++generation }
+        val version = sessionLock.withLock {
+            mutableAccount.value = null
+            ++generation
+        }
         // A foreground restore must not read an old/empty snapshot while login is committing.
         return restoreLock.withLock {
             if (sessionLock.withLock { generation != version }) {
@@ -143,12 +219,14 @@ internal class PersistentAuthRepository(
             if (generation != version || !isCurrent()) return@withLock AuthResult(AuthFailure.SESSION_EXPIRED)
             withContext(NonCancellable + Dispatchers.Default) {
                 if (!storage.write(authJson.encodeToString(value))) {
+                    mutableAccount.value = null
                     mutableSession.value = AuthSession.Unavailable(AuthFailure.STORAGE)
                     AuthResult(AuthFailure.STORAGE)
                 } else {
                     stored = value
                     onSaved()
                     if (publish) {
+                        mutableAccount.value = AccountIdentity(value.user.id, version)
                         mutableSession.value =
                             AuthSession.Authenticated(AuthUser(value.user.id, value.user.email))
                     }
@@ -255,6 +333,7 @@ internal class PersistentAuthRepository(
         if (failure != AuthFailure.SESSION_EXPIRED) return unavailable(version, failure)
         return sessionLock.withLock {
             if (generation == version) {
+                mutableAccount.value = null
                 if (!withContext(NonCancellable + Dispatchers.Default) { storage.write(null) }) {
                     mutableSession.value = AuthSession.Unavailable(AuthFailure.STORAGE)
                     return@withLock AuthResult(AuthFailure.STORAGE)
@@ -267,7 +346,10 @@ internal class PersistentAuthRepository(
     }
 
     private suspend fun unavailable(version: Long, failure: AuthFailure): AuthResult = sessionLock.withLock {
-        if (generation == version) mutableSession.value = AuthSession.Unavailable(failure)
+        if (generation == version) {
+            if (failure == AuthFailure.STORAGE) mutableAccount.value = null
+            mutableSession.value = AuthSession.Unavailable(failure)
+        }
         AuthResult(failure)
     }
 

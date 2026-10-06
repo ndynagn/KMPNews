@@ -1,25 +1,21 @@
 package com.ndynagn.kmp.news.feature.feed.di
 
+import com.ndynagn.kmp.news.data.news.configureNewsHttpClient
 import com.ndynagn.kmp.news.feature.feed.data.OfflineFirstNewsRepository
 import com.ndynagn.kmp.news.feature.feed.data.local.FeedDatabase
 import com.ndynagn.kmp.news.feature.feed.data.local.FeedStore
 import com.ndynagn.kmp.news.feature.feed.data.local.RoomFeedStore
 import com.ndynagn.kmp.news.feature.feed.data.remote.NewsFeedClient
 import com.ndynagn.kmp.news.feature.feed.data.remote.NewsRemoteSource
-import com.ndynagn.kmp.news.feature.feed.data.remote.feedJson
 import com.ndynagn.kmp.news.feature.feed.domain.FeedClock
 import com.ndynagn.kmp.news.feature.feed.domain.NewsRepository
 import com.ndynagn.kmp.news.feature.feed.domain.RefreshFeedIfNeeded
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.URLProtocol
-import io.ktor.serialization.kotlinx.json.json
 import org.koin.core.KoinApplication
 import org.koin.dsl.bind
 import org.koin.dsl.koinApplication
@@ -106,12 +102,7 @@ internal fun HttpClientConfig<*>.configureFeedHttpClient(
     configuration: FeedApiConfiguration,
     httpLogger: FeedHttpLogger? = null,
 ) {
-    expectSuccess = false
-    followRedirects = false
-
-    defaultRequest {
-        if (configuration.isConfigured) url(configuration.functionsUrl)
-    }
+    configureNewsHttpClient(configuration.news)
 
     if (httpLogger != null) {
         install(Logging) {
@@ -133,15 +124,5 @@ internal fun HttpClientConfig<*>.configureFeedHttpClient(
                 )
             }
         }
-    }
-
-    install(ContentNegotiation) {
-        json(feedJson)
-    }
-
-    install(HttpTimeout) {
-        requestTimeoutMillis = 30_000
-        connectTimeoutMillis = 15_000
-        socketTimeoutMillis = 30_000
     }
 }

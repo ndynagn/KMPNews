@@ -2,6 +2,7 @@ package com.ndynagn.kmp.news.feature.auth.data
 
 import com.ndynagn.kmp.news.feature.auth.di.AuthConfiguration
 import com.ndynagn.kmp.news.feature.auth.domain.AuthFailure
+import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.header
@@ -14,6 +15,9 @@ import io.ktor.http.contentType
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -26,6 +30,30 @@ internal class SupabaseAuthClient(private val httpClient: HttpClient, private va
 
     override suspend fun register(email: String, password: String): AuthResponse<Unit> =
         unit("signup", mapOf("email" to email, "password" to password))
+
+    override suspend fun registerWithProfile(
+        email: String,
+        password: String,
+        details: ProfileDetails,
+    ): AuthResponse<Unit> = call(
+        "signup",
+        null,
+        null,
+        HttpMethod.Post,
+        JsonObject(
+            mapOf(
+                "email" to JsonPrimitive(email),
+                "password" to JsonPrimitive(password),
+                "data" to JsonObject(
+                    mapOf(
+                        "first_name" to JsonPrimitive(details.firstName),
+                        "last_name" to JsonPrimitive(details.lastName),
+                        "middle_name" to (details.middleName?.let(::JsonPrimitive) ?: JsonNull),
+                    ),
+                ),
+            ),
+        ),
+    ) { }
 
     override suspend fun confirm(email: String, code: String): AuthResponse<AuthTokenDto> =
         token("verify", mapOf("email" to email, "token" to code, "type" to "signup"))
@@ -62,6 +90,7 @@ internal class SupabaseAuthClient(private val httpClient: HttpClient, private va
         fields: Map<String, String>?,
         token: String?,
         method: HttpMethod = if (fields == null) HttpMethod.Get else HttpMethod.Post,
+        jsonBody: JsonObject? = null,
         decode: (String) -> T,
     ): AuthResponse<T> {
         if (!configuration.isConfigured) return AuthResponse.Failed(AuthFailure.NOT_CONFIGURED)
@@ -70,7 +99,10 @@ internal class SupabaseAuthClient(private val httpClient: HttpClient, private va
                 this.method = method
                 header("apikey", configuration.publishableKey)
                 if (token != null) bearerAuth(token)
-                if (fields != null) {
+                if (jsonBody != null) {
+                    contentType(ContentType.Application.Json)
+                    setBody(jsonBody.toString())
+                } else if (fields != null) {
                     contentType(ContentType.Application.Json)
                     setBody(authJson.encodeToString(fields))
                 }
@@ -81,7 +113,7 @@ internal class SupabaseAuthClient(private val httpClient: HttpClient, private va
             } else {
                 val code = runCatching {
                     val json = authJson.parseToJsonElement(body).jsonObject
-                    (json["code"] ?: json["error_code"])?.jsonPrimitive?.content
+                    (json["error_code"] ?: json["code"])?.jsonPrimitive?.content
                 }.getOrNull()
                 if (path == "signup" && code in setOf("user_already_exists", "email_exists")) {
                     // Keep the same confirmation acknowledgement for existing and new accounts.
@@ -109,7 +141,8 @@ internal class SupabaseAuthClient(private val httpClient: HttpClient, private va
                             "session_expired",
                         ) -> AuthFailure.SESSION_EXPIRED
 
-                    path == "user" && response.status.value == 401 -> AuthFailure.SESSION_EXPIRED
+                    path == "user" && (response.status.value == 401 || code == "user_not_found") ->
+                        AuthFailure.SESSION_EXPIRED
 
                     code == "invalid_credentials" -> AuthFailure.INVALID_CREDENTIALS
 

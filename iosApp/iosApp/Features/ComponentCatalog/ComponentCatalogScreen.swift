@@ -5,13 +5,14 @@
         @Environment(\.dismiss) private var dismiss
         @State private var viewModel = ComponentCatalogViewModel()
         @State private var showsAuth = false
+        @State private var authViewModel = CatalogAuthViewModel()
         @State private var showsConfirmation = false
         @State private var selectedTab = 0
 
         var body: some View {
             NavigationStack { catalog }
-                .sheet(isPresented: $showsAuth) {
-                    CatalogAuthScreen(onSuccess: viewModel.completeAuth)
+                .sheet(isPresented: $showsAuth, onDismiss: authViewModel.close) {
+                    CatalogAuthScreen(viewModel: authViewModel, onSuccess: viewModel.completeAuth)
                 }
                 .alert(
                     "kit.demo",
@@ -38,13 +39,20 @@
                 NavigationLink("kit.profile") { profile.navigationTitle("kit.profile") }
                     .accessibilityIdentifier("kit.profileLink")
                 Section("kit.forms") {
-                    Button("kit.openAuth") { showsAuth = true }.accessibilityIdentifier("kit.openAuth")
+                    Button("auth.login") {
+                        authViewModel = CatalogAuthViewModel()
+                        showsAuth = true
+                    }.accessibilityIdentifier("kit.openAuth")
+                    Button("auth.registration") {
+                        authViewModel = CatalogAuthViewModel(initialStep: .register)
+                        showsAuth = true
+                    }.accessibilityIdentifier("kit.openRegistration")
                     Text("kit.formsRule").font(.footnote).foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("kit.title")
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("auth.close", systemImage: "xmark") { dismiss() }
                         .labelStyle(.iconOnly).accessibilityIdentifier("kit.close")
                 }

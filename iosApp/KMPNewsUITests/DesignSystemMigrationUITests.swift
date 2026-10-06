@@ -7,7 +7,7 @@ final class DesignSystemMigrationUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Загрузка новостей"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.otherElements["feed.article.fixture-0"].exists)
-        capture(app, "ds-feed-loading")
+        capture("ds-feed-loading")
         XCTAssertTrue(app.otherElements["feed.article.fixture-0"].waitForExistence(timeout: 12))
     }
 
@@ -20,13 +20,13 @@ final class DesignSystemMigrationUITests: XCTestCase {
         app.buttons["kit.contentLink"].tap()
 
         XCTAssertTrue(app.navigationBars["Новостной контент"].waitForExistence(timeout: 5))
-        capture(app, "ds-catalog-content")
+        capture("ds-catalog-content")
 
         app.navigationBars["Новостной контент"].buttons["BackButton"].tap()
         app.buttons["kit.statesLink"].tap()
 
         XCTAssertTrue(app.navigationBars["Состояния"].waitForExistence(timeout: 5))
-        capture(app, "ds-catalog-states")
+        capture("ds-catalog-states")
     }
 
     @MainActor
@@ -36,7 +36,7 @@ final class DesignSystemMigrationUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["feed.article.fixture-0"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Тестовая новость 1: город и технологии"].exists)
         XCTAssertFalse(app.staticTexts["Fixture description must not appear on a card."].exists)
-        capture(app, "ds-feed-cards")
+        capture("ds-feed-cards")
 
         app.tabBars.buttons["Профиль"].tap()
 
@@ -47,7 +47,7 @@ final class DesignSystemMigrationUITests: XCTestCase {
         XCTAssertEqual(login.frame.height, registration.frame.height, accuracy: 1)
         XCTAssertGreaterThanOrEqual(login.frame.height, 44)
         XCTAssertTrue(registration.isHittable)
-        capture(app, "ds-profile-buttons")
+        capture("ds-profile-buttons")
 
         login.tap()
 
@@ -65,13 +65,13 @@ final class DesignSystemMigrationUITests: XCTestCase {
         let empty = launch(extra: ["--feed-ui-empty"])
 
         XCTAssertTrue(empty.staticTexts["Новостей пока нет"].waitForExistence(timeout: 5))
-        capture(empty, "ds-feed-empty")
+        capture("ds-feed-empty")
         empty.terminate()
 
         let failed = launch(extra: ["--feed-ui-error"])
 
         XCTAssertTrue(failed.buttons["feed.retryButton"].waitForExistence(timeout: 5))
-        capture(failed, "ds-feed-error")
+        capture("ds-feed-error")
 
         failed.buttons["feed.retryButton"].tap()
 
@@ -91,7 +91,7 @@ final class DesignSystemMigrationUITests: XCTestCase {
         for _ in 0..<8 where !retry.isHittable { app.scrollViews["feed.list"].swipeUp() }
 
         XCTAssertTrue(retry.isHittable)
-        capture(app, "ds-feed-cached-error")
+        capture("ds-feed-cached-error")
 
         retry.tap()
 
@@ -105,13 +105,13 @@ final class DesignSystemMigrationUITests: XCTestCase {
         let app = launch(extra: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
 
         XCTAssertTrue(app.otherElements["feed.article.fixture-0"].waitForExistence(timeout: 5))
-        capture(app, "ds-feed-large-text")
+        capture("ds-feed-large-text")
 
         app.tabBars.buttons["Профиль"].tap()
         XCTAssertTrue(app.buttons["profile.login"].waitForExistence(timeout: 5))
         app.swipeUp()
         XCTAssertTrue(app.buttons["profile.register"].isHittable)
-        capture(app, "ds-profile-large-text")
+        capture("ds-profile-large-text")
     }
 
     @MainActor
@@ -122,13 +122,5 @@ final class DesignSystemMigrationUITests: XCTestCase {
         app.launch()
 
         return app
-    }
-
-    @MainActor
-    private func capture(_ app: XCUIApplication, _ name: String) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
     }
 }

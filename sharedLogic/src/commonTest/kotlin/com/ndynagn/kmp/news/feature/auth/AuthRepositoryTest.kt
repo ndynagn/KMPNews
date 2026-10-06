@@ -12,6 +12,8 @@ import com.ndynagn.kmp.news.feature.auth.data.StoredAuthSession
 import com.ndynagn.kmp.news.feature.auth.data.authJson
 import com.ndynagn.kmp.news.feature.auth.domain.AuthFailure
 import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
+import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
+import com.ndynagn.kmp.news.network.CredentialsResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
@@ -27,6 +29,79 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AuthRepositoryTest {
+    @Test
+    fun concurrentFavoritesCredentialsRotateOnlyOnceAndLogoutInvalidatesIdentity() = runTest {
+        var now = 100L
+        val remote = FakeAuthRemote().apply { refreshGate = CompletableDeferred() }
+        val repository = PersistentAuthRepository(remote, FakeAuthStorage(), AuthClock { now })
+        repository.signIn("reader@example.test", "password")
+        val identity = assertNotNull(repository.account.value)
+        now = 5000
+        val first = async { repository.credentials(identity) }
+        remote.refreshStarted.await()
+        val second = async { repository.credentials(identity) }
+        remote.refreshGate?.complete(Unit)
+
+        assertIs<CredentialsResult.Ready>(first.await())
+        assertIs<CredentialsResult.Ready>(second.await())
+        assertEquals(1, remote.refreshes)
+        repository.signOut()
+        var committed = false
+        assertEquals(false, repository.commitIfCurrent(identity) { committed = true })
+        assertEquals(false, committed)
+        assertIs<CredentialsResult.Failed>(repository.credentials(identity))
+        repository.signIn("reader@example.test", "password")
+        assertTrue(repository.account.value != identity)
+    }
+
+    @Test
+    fun recoveryCannotSupplyFavoritesCredentialsAndTransientFailureKeepsCacheIdentity() = runTest {
+        val remote = FakeAuthRemote()
+        val repository = PersistentAuthRepository(remote, FakeAuthStorage(), AuthClock { 100 })
+        repository.restore()
+        val recovery = repository.passwordRecovery()
+        recovery.verifyCode("reader@example.test", "012345")
+
+        assertNull(repository.account.value)
+        recovery.cancel()
+
+        remote.refreshFailure = AuthFailure.NETWORK
+        val offline = PersistentAuthRepository(remote, FakeAuthStorage(expiredSession()), AuthClock { 100 })
+        assertEquals(AuthFailure.NETWORK, offline.restore().failure)
+        val cachedIdentity = assertNotNull(offline.account.value)
+        assertEquals("reader", cachedIdentity.userId)
+        assertIs<CredentialsResult.Failed>(offline.credentials(cachedIdentity))
+    }
+
+    @Test
+    fun rejectedOldTokenUsesRotatedCredentialsAndLateRefreshCannotSurviveLogout() = runTest {
+        var now = 100L
+        val remote = FakeAuthRemote()
+        val storage = FakeAuthStorage(
+            authJson.encodeToString(
+                StoredAuthSession("old-access", "old-refresh", 5000, AuthUserDto("reader", "reader@example.test")),
+            ),
+        )
+        val repository = PersistentAuthRepository(remote, storage, AuthClock { now })
+        repository.restore()
+        val identity = assertNotNull(repository.account.value)
+
+        repository.credentials(identity, "old-access")
+        repository.credentials(identity, "old-access")
+        assertEquals(1, remote.refreshes)
+
+        now = 10000
+        remote.refreshGate = CompletableDeferred()
+        val pending = async { repository.credentials(identity) }
+        while (remote.refreshes < 2) kotlinx.coroutines.yield()
+        repository.signOut()
+        remote.refreshGate?.complete(Unit)
+
+        assertIs<CredentialsResult.Failed>(pending.await())
+        assertNull(repository.account.value)
+        assertNull(storage.value)
+    }
+
     @Test
     fun registrationRequiresConfirmationAndPreservesLeadingZeroCode() = runTest {
         val remote = FakeAuthRemote()
@@ -317,7 +392,9 @@ class AuthRepositoryTest {
 private class FakeAuthStorage(var value: String? = null) : AuthSessionStorage {
     var failRead = false
     var failWrite = false
+
     override fun read() = AuthStorageRead(value, failRead)
+
     override fun write(value: String?): Boolean {
         if (failWrite) return false
         this.value = value
@@ -345,36 +422,48 @@ private class FakeAuthRemote : AuthRemoteSource {
     val refreshStarted = CompletableDeferred<Unit>()
     val loginStarted = CompletableDeferred<Unit>()
     private fun token() = AuthResponse.Success(AuthTokenDto("new-access", "new-refresh", 3600, user))
+
     override suspend fun signIn(email: String, password: String): AuthResponse<AuthTokenDto> {
         loginStarted.complete(Unit)
         loginGate?.await()
         return token()
     }
+
     override suspend fun register(email: String, password: String) = AuthResponse.Success(Unit)
+
+    override suspend fun registerWithProfile(email: String, password: String, details: ProfileDetails) =
+        register(email, password)
+
     override suspend fun confirm(email: String, code: String): AuthResponse<AuthTokenDto> {
         this.code = code
         return token()
     }
+
     override suspend fun resend(email: String) = AuthResponse.Success(Unit)
+
     override suspend fun requestRecovery(email: String) = AuthResponse.Success(Unit)
+
     override suspend fun verifyRecovery(email: String, code: String): AuthResponse<AuthTokenDto> {
         this.code = code
         recoveryStarted.complete(Unit)
         if (ignoreRecoveryCancellation) withContext(NonCancellable) { recoveryGate?.await() } else recoveryGate?.await()
         return token()
     }
+
     override suspend fun resetPassword(token: String, password: String): AuthResponse<AuthUserDto> {
         this.password = password
         resetStarted.complete(Unit)
         resetGate?.await()
         return resetFailure?.let { AuthResponse.Failed(it) } ?: AuthResponse.Success(user)
     }
+
     override suspend fun refresh(token: String): AuthResponse<AuthTokenDto> {
         refreshes++
         refreshStarted.complete(Unit)
         refreshGate?.await()
         return refreshFailure?.let { AuthResponse.Failed(it) } ?: token()
     }
+
     override suspend fun user(token: String): AuthResponse<AuthUserDto> = if (rejectOldAccess &&
         token == "old-access"
     ) {
@@ -382,6 +471,7 @@ private class FakeAuthRemote : AuthRemoteSource {
     } else {
         AuthResponse.Success(user)
     }
+
     override suspend fun logout(token: String): AuthResponse<Unit> {
         logouts++
         return logoutFailure?.let { AuthResponse.Failed(it) } ?: AuthResponse.Success(Unit)

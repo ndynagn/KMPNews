@@ -49,8 +49,6 @@ private struct AppPasswordInput: UIViewRepresentable {
         field.keyboardType = .asciiCapable
         field.returnKeyType = .done
         field.delegate = context.coordinator
-        field.inputAccessoryView = AppKeyboardAccessory.makeToolbar(
-            target: context.coordinator, action: #selector(Coordinator.dismissKeyboard))
         field.autocorrectionType = .no
         field.autocapitalizationType = .none
         field.spellCheckingType = .no
@@ -113,10 +111,6 @@ private struct AppPasswordInput: UIViewRepresentable {
         var parent: AppPasswordInput
 
         init(parent: AppPasswordInput) { self.parent = parent }
-
-        @objc func dismissKeyboard() {
-            AppKeyboardAccessory.dismiss()
-        }
 
         func textFieldDidBeginEditing(_ textField: UITextField) {
             if parent.isFocused?.wrappedValue == false { parent.isFocused?.wrappedValue = true }

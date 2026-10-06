@@ -7,6 +7,7 @@ enum class AuthInputIssue { EMAIL, PASSWORD_REQUIRED, PASSWORD_TOO_SHORT, PASSWO
 class AuthInputValidator {
     fun email(email: String): AuthInputIssue? {
         val parts = email.trim().split('@')
+
         return if (parts.size != 2 || parts.any { it.isBlank() } ||
             email.trim().any(Char::isWhitespace)
         ) {

@@ -171,13 +171,13 @@ fun MobileApp(
                             )
                         } else if (tab == 2) {
                             ProfileScreen(
-                                session,
-                                notice,
-                                busy,
-                                { authStep = AuthStep.SIGN_IN },
-                                { authStep = AuthStep.REGISTER },
-                                profileViewModel::restore,
-                                profileViewModel::signOut,
+                                session = session,
+                                notice = notice,
+                                isBusy = busy,
+                                onLogin = { authStep = AuthStep.SIGN_IN },
+                                onRegister = { authStep = AuthStep.REGISTER },
+                                onRetry = profileViewModel::restore,
+                                onLogout = profileViewModel::signOut,
                             )
                         } else if (tab == 0) {
                             Column {

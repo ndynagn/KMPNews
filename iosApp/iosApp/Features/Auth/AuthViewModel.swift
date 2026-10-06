@@ -3,9 +3,13 @@ import Observation
 
 /// One navigation flow owns its requests. Closing it cancels work and invalidates late completions.
 @MainActor @Observable
-final class AuthViewModel {
+final class AuthViewModel: Identifiable {
+    let id = UUID()
+    let initialStep: AuthStep
     private(set) var state: AuthUiState
+    private(set) var errorFeedback = 0
     private let client: any AuthClient
+    private let profileClient: (any ProfileClient)?
     private var recovery: any AuthRecoveryClient
     private var isClosed = false
     private var request: Task<Void, Never>?
@@ -14,8 +18,13 @@ final class AuthViewModel {
     private let now: () -> Date
     private var resendDeadlines: [String: Date] = [:]
 
-    init(client: any AuthClient, step: AuthStep, now: @escaping () -> Date = Date.init) {
+    init(
+        client: any AuthClient, step: AuthStep, profileClient: (any ProfileClient)? = nil,
+        now: @escaping () -> Date = Date.init
+    ) {
         self.client = client
+        self.profileClient = profileClient
+        initialStep = step
         recovery = client.makeRecovery()
         self.now = now
         state = AuthUiState(step: step)
@@ -31,14 +40,27 @@ final class AuthViewModel {
 
             state.code = code
             state.errorKey = nil
+            state.canRetryCodeVerification = false
             if code.count == 6 && [.confirm, .recoveryCode].contains(state.step) { submit(resend: false) }
 
             return
         }
 
         state.errorKey = nil
+        state.canRetryCodeVerification = false
 
         switch event {
+        case .details(let value): state.details = value
+        case .photo(let value): state.photo = value
+        case .preparingPhoto(let value): state.isPreparingPhoto = value
+        case .photoFailed:
+            state.errorKey = "profile.photoInvalid"
+            errorFeedback += 1
+        case .skipPhoto:
+            guard state.step == .registrationPhoto else { return }
+
+            state.photo = nil
+            state.isComplete = true
         case .email(let value):
             state.email = value
             state.needsConfirmation = false
@@ -46,7 +68,6 @@ final class AuthViewModel {
         case .password(let value): state.password = value
         case .repeatPassword(let value): state.repeatPassword = value
         case .code: break
-        case .register: navigate(to: .register)
         case .recovery: navigate(to: .recovery)
         case .returnToLogin:
             renewRecovery()
@@ -60,14 +81,19 @@ final class AuthViewModel {
             if [.newPassword, .recoveryCode, .recovery].contains(state.step) { renewRecovery() }
             guard let previous = state.history.last else { return }
             navigate(to: previous, goingBack: true)
-        case .submit: submit(resend: false)
+        case .submit:
+            if state.step == .registrationPhoto {
+                saveRegistrationPhoto()
+            } else if !state.isPreparingPhoto {
+                submit(resend: false)
+            }
         case .resend: submit(resend: true)
         }
     }
 
     /// Native back navigation cancels the active request before restoring an earlier step.
     func pop(toDepth depth: Int) {
-        guard depth >= 0, depth < state.history.count else { return }
+        guard !isClosed, state.step != .registrationPhoto, depth >= 0, depth < state.history.count else { return }
 
         generation += 1
         request?.cancel()
@@ -78,7 +104,8 @@ final class AuthViewModel {
         }
     }
 
-    func close() {
+    /// Stops work without changing the form rendered during the sheet dismissal animation.
+    func beginDismissal() {
         guard !isClosed else { return }
 
         isClosed = true
@@ -90,12 +117,18 @@ final class AuthViewModel {
 
         // This bounded cleanup owns only the old flow, never a newly opened form.
         Task { await abandoned.cancel() }
+    }
 
+    /// Called by the presenting view after the native sheet has finished dismissing.
+    func close() {
+        beginDismissal()
         state.isBusy = false
         state.email = ""
         state.password = ""
         state.repeatPassword = ""
         state.code = ""
+        state.photo = nil
+        state.details = PersonalDetails()
     }
 
     private func renewRecovery() {
@@ -113,8 +146,10 @@ final class AuthViewModel {
     private func navigate(to step: AuthStep, goingBack: Bool = false) {
         let history = goingBack ? Array(state.history.dropLast()) : state.history + [state.step]
         let email = state.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let details = state.details
+        let photo = state.photo
 
-        state = AuthUiState(step: step, history: history, email: email)
+        state = AuthUiState(step: step, history: history, email: email, details: details, photo: photo)
         updateCountdown()
     }
 
@@ -133,7 +168,10 @@ final class AuthViewModel {
         let email = state.email.trimmingCharacters(in: .whitespacesAndNewlines)
         state.errorKey = client.validate(state, resend: resend)
 
-        guard state.errorKey == nil else { return }
+        guard state.errorKey == nil else {
+            errorFeedback += 1
+            return
+        }
 
         state.isBusy = true
 
@@ -153,7 +191,9 @@ final class AuthViewModel {
                 } else {
                     switch input.step {
                     case .signIn: problem = try await client.signIn(email: email, password: input.password)
-                    case .register: problem = try await client.register(email: email, password: input.password)
+                    case .register:
+                        problem = try await client.register(
+                            email: email, password: input.password, details: input.details)
                     case .confirm: problem = try await client.confirm(email: email, code: input.code)
                     case .recovery: problem = try await recovery.requestCode(email: email)
                     case .recoveryCode: problem = try await recovery.verifyCode(email: email, code: input.code)
@@ -161,12 +201,17 @@ final class AuthViewModel {
                         let result = try await recovery.resetPassword(input.password)
                         problem = result.problem
                         passwordChanged = result.passwordChanged
+                    case .registrationPhoto: return
                     }
                 }
                 guard !Task.isCancelled, let self, self.generation == version else { return }
 
                 self.state.isBusy = false
                 if let problem {
+                    self.errorFeedback += 1
+                    self.state.canRetryCodeVerification =
+                        !resend && [.confirm, .recoveryCode].contains(input.step)
+                        && [.network, .service, .rateLimited].contains(problem)
                     self.state.passwordWasChanged = passwordChanged
                     self.state.errorKey = passwordChanged ? "auth.reset_storage" : problem.rawValue
                     if passwordChanged {
@@ -190,13 +235,55 @@ final class AuthViewModel {
                     self.startCountdown()
                 } else if input.step == .recoveryCode {
                     self.navigate(to: .newPassword)
+                } else if input.step == .confirm && input.photo != nil {
+                    self.navigate(to: .registrationPhoto)
+                    self.saveRegistrationPhoto()
                 } else {
-                    self.state = AuthUiState(step: input.step, isComplete: true)
+                    self.state.isComplete = true
                 }
             } catch {
                 guard !Task.isCancelled, let self, self.generation == version else { return }
+
                 self.state.isBusy = false
                 self.state.errorKey = "auth.service"
+                self.errorFeedback += 1
+                self.state.canRetryCodeVerification = !resend && [.confirm, .recoveryCode].contains(input.step)
+            }
+        }
+    }
+
+    private func saveRegistrationPhoto() {
+        guard let profileClient, let photo = state.photo else {
+            state.errorKey = "auth.service"
+            errorFeedback += 1
+            return
+        }
+
+        state.isBusy = true
+        state.errorKey = nil
+
+        let details = state.details
+        let version = generation
+
+        request = Task { [weak self, profileClient] in
+            do {
+                let result = try await profileClient.save(details: details, photo: photo, removePhoto: false)
+
+                guard !Task.isCancelled, let self, self.generation == version else { return }
+
+                self.state.isBusy = false
+                self.state.errorKey = result.errorKey
+                if result.errorKey != nil { self.errorFeedback += 1 }
+                if result.errorKey == nil {
+                    self.state.photo = nil
+                    self.state.isComplete = true
+                }
+            } catch {
+                guard !Task.isCancelled, let self, self.generation == version else { return }
+
+                self.state.isBusy = false
+                self.state.errorKey = "auth.service"
+                self.errorFeedback += 1
             }
         }
     }

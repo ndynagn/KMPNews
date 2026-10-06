@@ -5,6 +5,7 @@ import Observation
 @MainActor @Observable
 final class FeedViewModel {
     private(set) var state: FeedUiState
+    private(set) var errorFeedback = 0
     private var status: FeedStatus
     private var snapshot: FeedSnapshotState?
     private let client: any FeedClient
@@ -62,7 +63,7 @@ final class FeedViewModel {
         guard isActive else { return }
 
         switch event {
-        case .refresh: start(.refresh)
+        case .refresh: start(.refresh, userInitiated: true)
         case .loadMore:
             if state.canAppend { start(.append) }
         case .retry:
@@ -73,7 +74,7 @@ final class FeedViewModel {
             let operation = status.failedOperation ?? .activate
             status.failedOperation = nil
             publishState()
-            start(operation)
+            start(operation, userInitiated: true)
         }
     }
 
@@ -102,7 +103,7 @@ final class FeedViewModel {
         }
     }
 
-    private func start(_ operation: FeedOperation) {
+    private func start(_ operation: FeedOperation, userInitiated: Bool = false) {
         guard isActive, request == nil, status.isConfigured else { return }
 
         status.operation = operation
@@ -115,20 +116,21 @@ final class FeedViewModel {
                 let result = try await client.update(operation)
                 guard !Task.isCancelled, let self, self.generation == session else { return }
 
-                self.finish(operation, result: result)
+                self.finish(operation, result: result, userInitiated: userInitiated)
                 self.request = nil
             } catch {
                 guard !Task.isCancelled, let self, self.generation == session else { return }
 
-                self.finish(operation, result: .failure(isStorage: false))
+                self.finish(operation, result: .failure(isStorage: false), userInitiated: userInitiated)
                 self.request = nil
             }
         }
     }
 
-    private func finish(_ operation: FeedOperation, result: FeedUpdate) {
+    private func finish(_ operation: FeedOperation, result: FeedUpdate, userInitiated: Bool) {
         status.operation = nil
         if case .failure(let isStorage) = result {
+            if userInitiated { errorFeedback += 1 }
             if operation != .activate || status.failedOperation == nil { status.failedOperation = operation }
             status.storageFailed = status.storageFailed || isStorage
         }

@@ -2,53 +2,52 @@ import Foundation
 import Observation
 import SharedLogic
 
-/// Owns independent Auth and feed graphs. A feed-storage failure does not block account access.
+/// A window's presentation models share app-owned services but keep independent tasks and search results.
 @MainActor @Observable
 final class HomeViewModel {
-    private(set) var dependencies: FeedDependencies?
+    private let services: AppServices
+    var authDependencies: AuthDependencies { services.authDependencies }
     private(set) var storageFailed = false
-    let configuration: FeedApiConfiguration
-    let authDependencies: AuthDependencies
     private(set) var feedViewModel: FeedViewModel?
+    private(set) var favoriteSaveViewModel: FavoriteSaveViewModel?
+    private(set) var favoritesViewModel: FavoritesViewModel?
+    let searchViewModel: SearchViewModel
 
-    init() {
-        let authConfiguration = AuthConfiguration(
-            projectUrl: Bundle.main.object(forInfoDictionaryKey: "SupabaseURL") as? String ?? "",
-            publishableKey: Bundle.main.object(forInfoDictionaryKey: "SupabasePublishableKey") as? String ?? ""
-        )
-        authDependencies = AuthFactory_appleKt.createAuthDependencies(
-            configuration: authConfiguration, storage: KeychainAuthStorage())
-        configuration = FeedApiConfiguration(
-            supabaseUrl: Bundle.main.object(forInfoDictionaryKey: "SupabaseURL") as? String ?? "",
-            publishableKey: Bundle.main.object(forInfoDictionaryKey: "SupabasePublishableKey") as? String ?? ""
-        )
+    init(services: AppServices) {
+        self.services = services
+        let searchClient: any SearchClient
+        #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--search-ui-fixture") {
+                searchClient = SearchUITestClient()
+            } else {
+                searchClient = SharedSearchClient(repository: services.searchDependencies.searchRepository)
+            }
+        #else
+            searchClient = SharedSearchClient(repository: services.searchDependencies.searchRepository)
+        #endif
+        searchViewModel = SearchViewModel(client: searchClient)
     }
 
     func prepare() {
+        if favoriteSaveViewModel == nil {
+            let client = services.prepareFavorites()
+            let list = FavoritesViewModel(client: client)
+            favoritesViewModel = list
+            favoriteSaveViewModel = FavoriteSaveViewModel(client: client, onRemove: list.retainUntilRefresh)
+        }
+        guard feedViewModel == nil else { return }
         #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--feed-ui-fixture") {
-                if feedViewModel == nil {
-                    feedViewModel = FeedViewModel(client: FeedUITestClient(), isConfigured: true)
-                }
+                feedViewModel = FeedViewModel(client: FeedUITestClient(), isConfigured: true)
                 return
             }
         #endif
-        guard dependencies == nil else { return }
-
         do {
-            let directory = try FileManager.default.url(
-                for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
-            )
-            dependencies = FeedFactory_appleKt.createFeedDependencies(
-                databasePath: directory.appendingPathComponent("news-feed.db").path, configuration: configuration
-            )
-            if let dependencies {
-                feedViewModel = FeedViewModel(
-                    client: SharedFeedClient(
-                        newsRepository: dependencies.newsRepository,
-                        refreshFeedIfNeeded: dependencies.refreshFeedIfNeeded),
-                    isConfigured: configuration.isConfigured)
-            }
+            let dependencies = try services.prepareFeed()
+            feedViewModel = FeedViewModel(
+                client: SharedFeedClient(
+                    newsRepository: dependencies.newsRepository, refreshFeedIfNeeded: dependencies.refreshFeedIfNeeded),
+                isConfigured: services.feedConfiguration.isConfigured)
             storageFailed = false
         } catch {
             storageFailed = true

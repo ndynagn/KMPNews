@@ -5,6 +5,7 @@ import com.ndynagn.kmp.news.feature.auth.data.SupabaseAuthClient
 import com.ndynagn.kmp.news.feature.auth.di.AuthConfiguration
 import com.ndynagn.kmp.news.feature.auth.di.configureAuthClient
 import com.ndynagn.kmp.news.feature.auth.domain.AuthFailure
+import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -14,6 +15,10 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -22,6 +27,67 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AuthHttpClientTest {
+    @Test
+    fun authErrorCodeTakesPrecedenceOverNumericHttpCode() = runTest {
+        val client = HttpClient(
+            MockEngine {
+                respond(
+                    """{"code":400,"error_code":"invalid_credentials","msg":"Invalid login credentials"}""",
+                    HttpStatusCode.BadRequest,
+                )
+            },
+        ) { configureAuthClient() }
+        val remote = SupabaseAuthClient(client, AuthConfiguration("https://example.test", "sb_publishable_fixture"))
+
+        assertEquals(
+            AuthResponse.Failed(AuthFailure.INVALID_CREDENTIALS),
+            remote.signIn("reader@example.test", "incorrect-password"),
+        )
+        client.close()
+    }
+
+    @Test
+    fun deletedAccountIsAnExpiredSessionInsteadOfRetryableServiceFailure() = runTest {
+        val client = HttpClient(
+            MockEngine {
+                respond("""{"code":"user_not_found"}""", HttpStatusCode.Forbidden)
+            },
+        ) { configureAuthClient() }
+        val remote = SupabaseAuthClient(client, AuthConfiguration("https://example.test", "sb_publishable_fixture"))
+
+        assertEquals(AuthResponse.Failed(AuthFailure.SESSION_EXPIRED), remote.user("deleted-user-token"))
+
+        client.close()
+    }
+
+    @Test
+    fun registrationSendsNamesAsUserMetadataAndKeepsPasswordUnmodified() = runTest {
+        val client = HttpClient(
+            MockEngine { request ->
+                val body = Json.parseToJsonElement((request.body as TextContent).text) as JsonObject
+                val data = body["data"] as JsonObject
+
+                assertEquals(JsonPrimitive(" password "), body["password"])
+                assertEquals(JsonPrimitive("Анна-Мария"), data["first_name"])
+                assertEquals(JsonNull, data["middle_name"])
+                assertEquals("/auth/v1/signup", request.url.encodedPath)
+
+                respond("{}")
+            },
+        ) { configureAuthClient() }
+        val remote = SupabaseAuthClient(client, AuthConfiguration("https://example.test", "sb_publishable_fixture"))
+
+        assertIs<AuthResponse.Success<Unit>>(
+            remote.registerWithProfile(
+                "reader@example.test",
+                " password ",
+                ProfileDetails("Анна-Мария", "O’Connor", null),
+            ),
+        )
+
+        client.close()
+    }
+
     @Test
     fun signupAndConfirmationUsePasswordAndSignupCodeWithoutCredentialLogging() = runTest {
         val requests = mutableListOf<String>()
