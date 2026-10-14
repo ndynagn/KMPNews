@@ -2,3 +2,6 @@ product: ios/app
 
 dependencies:
   - //sharedLogic
+
+plugins:
+  style: enabled

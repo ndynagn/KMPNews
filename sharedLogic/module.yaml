@@ -1,3 +1,6 @@
 product:
   type: kmp/lib
   platforms: [android, iosArm64, iosSimulatorArm64, jvm]
+
+plugins:
+  style: enabled

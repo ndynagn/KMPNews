@@ -1,2 +1,21 @@
-# Project exclude paths
-/build/
+# Generated build outputs and local tool caches.
+build/
+.gradle/
+.kotlin/
+.toolchain/
+__pycache__/
+
+# Local IDE, SDK and operating-system files.
+.idea/
+*.iml
+local.properties
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local Xcode state; shared projects, schemes and resources remain versionable.
+xcuserdata/
+DerivedData/
+*.xcuserstate
+**/xcshareddata/WorkspaceSettings.xcsettings

@@ -1,0 +1,32 @@
+tasks:
+  kotlinAudit:
+    action: !com.ndynagn.kmp.news.tooling.checkKotlin
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+      toolClasspath:
+        - com.pinterest.ktlint:ktlint-cli:1.8.0
+  swiftAudit:
+    action: !com.ndynagn.kmp.news.tooling.checkSwift
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+  kotlinFormat:
+    action: !com.ndynagn.kmp.news.tooling.formatKotlin
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+      toolClasspath: ${kotlinAudit.action.toolClasspath}
+  swiftFormat:
+    action: !com.ndynagn.kmp.news.tooling.formatSwift
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+
+checks:
+  - name: ktlint
+    performedBy: kotlinAudit
+  - name: swiftFormat
+    performedBy: swiftAudit
+
+commands:
+  - name: formatKotlin
+    performedBy: kotlinFormat
+  - name: formatSwift
+    performedBy: swiftFormat

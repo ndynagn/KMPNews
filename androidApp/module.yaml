@@ -11,3 +11,6 @@ settings:
   android:
     namespace: com.ndynagn.kmp.news
     applicationId: com.ndynagn.kmp.news
+
+plugins:
+  style: enabled

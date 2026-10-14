@@ -4,3 +4,7 @@ modules:
   - iosApp
   - sharedLogic
   - sharedUI
+  - tooling/style
+
+plugins:
+  - ./tooling/style

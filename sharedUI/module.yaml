@@ -24,3 +24,6 @@ settings:
       packageName: com.ndynagn.kmp.news.resources
       # Generate public accessors so other modules (and previews) can use Res.*
       exposedAccessors: true
+
+plugins:
+  style: enabled
