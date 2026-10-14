@@ -1,7 +1,13 @@
 product: ios/app
 
+apply:
+  - //.toolchain/generated/skie.module-template.yaml
+
 dependencies:
   - //sharedLogic
+
+dependencies@ios:
+  - $libs.skie.runtime: exported
 
 plugins:
   style: enabled

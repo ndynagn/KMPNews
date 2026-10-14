@@ -2,5 +2,49 @@ product:
   type: kmp/lib
   platforms: [android, iosArm64, iosSimulatorArm64, jvm]
 
+apply:
+  - //.toolchain/generated/room.module-template.yaml
+
+dependencies:
+  - $libs.coroutines.core: exported
+  - $libs.koin.core
+  - $libs.ktor.client.core
+  - $libs.ktor.client.logging
+  - $libs.ktor.client.content.negotiation
+  - $libs.ktor.serialization.kotlinx.json
+  - $libs.serialization.json
+  - $libs.room.runtime
+  - $libs.sqlite.bundled
+
+dependencies@android:
+  - $libs.ktor.client.okhttp
+
+dependencies@jvm:
+  - $libs.ktor.client.okhttp
+
+dependencies@ios:
+  - $libs.ktor.client.darwin
+  - $libs.skie.runtime
+
+test-dependencies:
+  - $libs.coroutines.test
+  - $libs.ktor.client.mock
+
+settings:
+  kotlin:
+    compileIncrementally: false
+    serialization: json
+    ksp:
+      version: 2.3.12
+      processors:
+        - $libs.room.compiler
+    compilerPlugins:
+      - id: io.insert-koin.compiler.plugin
+        dependency: io.insert-koin:koin-compiler-plugin:1.2.1
+        options:
+          compileSafety: 'true'
+          unsafeDslChecks: 'true'
+          moduleId: sharedLogic
+
 plugins:
   style: enabled

@@ -15,7 +15,14 @@ The project name is `KMPNews`. The Kotlin package, Android application ID and iO
 
 The `kotlin` (macOS/Linux) and `kotlin.bat` (Windows) scripts in the project root are self-bootstrapping wrappers for
 the Kotlin Toolchain: they download the pinned version 0.13.0 on first use, so no separate installation is required.
-Build the whole project with `./kotlin build`.
+The small project preparation hook requires Python 3.9+ and prepares local
+SKIE/Room paths before delegating to that official bootstrap. It also forces
+fresh sharedLogic compilation for Koin checks. Build Apple platforms and
+Debug/Release profiles in separate invocations.
+Build Android with `./kotlin build -m androidApp -p android`, Desktop with
+`./kotlin build -m desktopApp -p jvm`, and iOS with
+`./kotlin build -m iosApp -p iosSimulatorArm64`. A whole-project Apple build
+without an explicit platform is rejected to keep SKIE target caches separate.
 
 ### Running
 
@@ -23,7 +30,7 @@ Run each module from the command line:
 
 - Android app: `./kotlin run -m androidApp`
 - Desktop app: `./kotlin run -m desktopApp`
-- iOS app: `./kotlin run -m iosApp`
+- iOS app: `./kotlin run -m iosApp -p iosSimulatorArm64`
 
 ### Testing
 
@@ -68,6 +75,26 @@ Seven Google Android skills are installed locally for Codex and Android Studio
 at revision `5bda39f154fb859a08d45e2392f3568e049f83fb`; these ignored directories
 are not distributed through Git. See root instructions for their routing and
 project-specific priorities. A fresh agent turn/session may be needed for discovery.
+
+### Dependency admission probes
+
+Koin, Ktor, Room/KSP/SQLite and SKIE are configured with the archived versions.
+Handwritten compatibility fixtures live under `sharedLogic/verification`,
+`androidApp/verification` and `iosApp/verification`. The script below copies only the fresh project's build
+files to a temporary checkout, enables those neutral fixtures there, and starts
+a local HTTP fixture server. Ordinary applications/frameworks exclude them.
+It never imports archived feature code or connects to a product backend.
+
+```sh
+python3 scripts/verify-compatibility.py --platform jvm
+python3 scripts/verify-compatibility.py --platform android --android-serial emulator-5554
+python3 scripts/verify-compatibility.py --platform ios --ios-simulator <booted-simulator-uuid>
+```
+
+Device probes install a separate `com.ndynagn.kmp.news.compatibility` app.
+Select an existing Emulator/Simulator; the script does not install SDKs or update
+the IDE. Checkout and logs remain in the system temporary directory for review.
+Success on available targets does not establish IDE import or distribution signing.
 
 ---
 
