@@ -1,0 +1,5 @@
+<resources>
+    <string name="kit_loading">Loading</string>
+    <string name="kit_show_password">Show</string>
+    <string name="kit_hide_password">Hide</string>
+</resources>

@@ -6,12 +6,14 @@ the [Kotlin Toolchain](https://kotlin-toolchain.org/latest/).
 - [/androidApp](./androidApp) contains the Android application.
 - [/desktopApp](./desktopApp) contains the desktop (JVM) application.
 - [/iosApp](./iosApp) contains the iOS application.
-- [/sharedLogic](./sharedLogic) holds the generated greeting and platform implementations shared by all clients.
+- [/sharedLogic](./sharedLogic) owns Auth/Profile, Feed, Search and Favorites domain/data and platform adapters.
 - [/sharedUI](./sharedUI) holds Compose presentation for Android and JVM Desktop.
 - iOS presentation uses native SwiftUI and consumes `sharedLogic` through `KotlinModules`.
 
 The project name is `KMPNews`. The Kotlin package, Android application ID and iOS bundle ID are
-`com.ndynagn.kmp.news`. This is a fresh starter project; application code from the archived project has not been migrated.
+`com.ndynagn.kmp.news`. Android retains its archived Auth/Profile/Feed screens and Favorites placeholder;
+iOS uses native Auth/Profile, Feed, Search, Favorites and article reading. JVM Desktop retains its starter window.
+Native SwiftUI macOS is outside the active project.
 
 The `kotlin` (macOS/Linux) and `kotlin.bat` (Windows) scripts in the project root are self-bootstrapping wrappers for
 the Kotlin Toolchain: they download the pinned version 0.13.0 on first use, so no separate installation is required.
@@ -32,12 +34,35 @@ Run each module from the command line:
 - Desktop app: `./kotlin run -m desktopApp`
 - iOS app: `./kotlin run -m iosApp -p iosSimulatorArm64`
 
-### Testing
-
-Run the current starter tests with:
+### Desktop executable JAR
 
 ```sh
-./kotlin test -m sharedLogic -p jvm -p android -p iosSimulatorArm64
+./kotlin package -m desktopApp -p jvm
+java -jar 'build/tasks/_desktopApp_package@desktop-packaging/KMPNews-desktop.jar'
+```
+
+Use Java 25 or newer for the current compiled application; the JRE is not bundled.
+The executable includes runtime dependencies and the current host's Skiko native library,
+so package separately on each supported operating system/architecture.
+
+The project hook first runs official packaging, then the local `desktop-packaging`
+Toolchain plugin. The plugin consumes the resolved runtime classpath, preserves dependency
+JAR bytes and gives every nested JAR a unique indexed name. This avoids Toolchain 0.13
+collisions between different artifacts with the same filename, without changing versions.
+Its output above is the distributable; the earlier `_desktopApp_executableJarJvm` JAR is an
+intermediate. `./kotlin do packageDesktop -m desktopApp` can repeat the final step after
+official packaging. Bootstrap scripts and the Toolchain installation are unchanged.
+
+### Testing
+
+Run feature tests in separate platform invocations:
+
+```sh
+./kotlin test -m sharedLogic -p jvm
+./kotlin test -m sharedLogic -p android
+./kotlin test -m sharedLogic -p iosSimulatorArm64
+./kotlin test -m sharedUI -p jvm
+./kotlin test -m androidApp -p android
 ```
 
 ### Engineering rules and style
@@ -47,8 +72,7 @@ Adjacent CLAUDE files import those rules. Reusable standards cover
 [architecture](docs/standards/architecture.md), [Kotlin](docs/standards/kotlin-style.md),
 [Swift](docs/standards/swift-style.md), [documentation](docs/standards/code-documentation.md),
 [review](docs/standards/review-checklist.md) and [verification](docs/standards/verification.md).
-The [technology stack](docs/standards/technology-stack.md) separates the installed
-starter from dependencies selected for later migration.
+The [technology stack](docs/standards/technology-stack.md) records configured integrations and their verification gates.
 
 Instructions, docs and style configs are local to this checkout and excluded through
 `.git/info/exclude`. They are not distributed by cloning this repository.
@@ -76,25 +100,34 @@ at revision `5bda39f154fb859a08d45e2392f3568e049f83fb`; these ignored directorie
 are not distributed through Git. See root instructions for their routing and
 project-specific priorities. A fresh agent turn/session may be needed for discovery.
 
-### Dependency admission probes
+### Feature migration checks
 
 Koin, Ktor, Room/KSP/SQLite and SKIE are configured with the archived versions.
-Handwritten compatibility fixtures live under `sharedLogic/verification`,
-`androidApp/verification` and `iosApp/verification`. The script below copies only the fresh project's build
-files to a temporary checkout, enables those neutral fixtures there, and starts
-a local HTTP fixture server. Ordinary applications/frameworks exclude them.
-It never imports archived feature code or connects to a product backend.
+Starter tests and neutral admission probes have been removed for feature migration.
+The feature-owned harnesses stage disposable copies outside the repository and install separate verification app IDs.
+Select an already booted simulator/emulator; the scripts never create or erase devices:
 
 ```sh
-python3 scripts/verify-compatibility.py --platform jvm
-python3 scripts/verify-compatibility.py --platform android --android-serial emulator-5554
-python3 scripts/verify-compatibility.py --platform ios --ios-simulator <booted-simulator-uuid>
+python3 scripts/verify-ios-features.py --suite all --ios-simulator <UDID>
+python3 scripts/verify-ios-features.py --suite interop --ios-simulator <UDID>
+python3 scripts/verify-ios-features.py --suite keychain --ios-simulator <UDID>
+python3 scripts/verify-ios-features.py --suite ui --ios-simulator <UDID> --only-testing ArticleDetailUITests
+python3 scripts/verify-android-features.py --adb <SDK>/platform-tools/adb --emulator emulator-5554
+python3 scripts/verify-android-ui.py --adb <SDK>/platform-tools/adb --emulator emulator-5554
+python3 scripts/verify-koin-graph.py
 ```
 
-Device probes install a separate `com.ndynagn.kmp.news.compatibility` app.
-Select an existing Emulator/Simulator; the script does not install SDKs or update
-the IDE. Checkout and logs remain in the system temporary directory for review.
-Success on available targets does not establish IDE import or distribution signing.
+Native suites can also be selected individually with `--suite`; use `--help` for current names.
+UI runners create temporary test targets/APKs; they never add a legacy instrumentation module.
+The local mediator fixture exercises actual OkHttp/Darwin engines without contacting a hosted service.
+Temporary copies remove public server configuration and use separate app IDs and Keychain services.
+Client configuration defaults to an unconfigured state. Supply only the public project URL/key
+through Android's `res/values/client_configuration.xml` and iOS Info.plist `SupabaseURL` /
+`SupabasePublishableKey` when real-server use is authorized. No privileged credentials belong in a client.
+Backend migrations and server configuration remain archived. Live Search additionally requires mediator `q` support.
+Use local HTTP fixtures; do not treat a local check as proof of production backend
+compatibility. Ordinary applications and frameworks must exclude test-only APIs.
+See the verification standard for platform and interop requirements.
 
 ---
 

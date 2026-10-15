@@ -56,7 +56,11 @@ fun formatSwift(@Input(inferTaskDependency = false) checkout: Path, moduleName: 
 }
 
 private fun auditFiles(checkout: Path, moduleName: String, extension: String): List<Path> {
-    val directory = if (moduleName == "style") checkout.resolve("tooling/style") else checkout.resolve(moduleName)
+    val relativeDirectory = when (moduleName) {
+        "style", "desktop-packaging" -> "tooling/$moduleName"
+        else -> moduleName
+    }
+    val directory = checkout.resolve(relativeDirectory)
     require(directory.normalize().startsWith(checkout.normalize())) { "Module is outside the checkout" }
 
     val sources = mutableListOf<Path>()

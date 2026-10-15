@@ -4,6 +4,12 @@ build/
 .kotlin/
 .toolchain/
 __pycache__/
+androidApp/src/generated/
+androidApp/test/generated/
+androidApp/src/AndroidManifest.xml
+# Variant resource files are owned by the preparation hook.
+androidApp/res/**/kmpnews_catalog_*.xml
+androidApp/res/drawable/catalog_*.xml
 
 # Local IDE, SDK and operating-system files.
 .idea/
