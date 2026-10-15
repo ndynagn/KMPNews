@@ -11,8 +11,19 @@ androidApp/src/AndroidManifest.xml
 androidApp/res/**/kmpnews_catalog_*.xml
 androidApp/res/drawable/catalog_*.xml
 
-# Local IDE, SDK and operating-system files.
-.idea/
+# Share only deliberate, portable IDE settings; everything else is regenerated or local.
+.idea/*
+!.idea/.gitignore
+!.idea/ktlint-plugin.xml
+!.idea/vcs.xml
+!.idea/inspectionProfiles/
+.idea/inspectionProfiles/*
+!.idea/inspectionProfiles/Project_Default.xml
+!.idea/runConfigurations/
+.idea/runConfigurations/*
+!.idea/runConfigurations/iosApp.xml
+
+# Local SDK and operating-system files.
 *.iml
 local.properties
 .DS_Store
