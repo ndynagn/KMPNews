@@ -8,12 +8,12 @@ import com.ndynagn.kmp.news.feature.auth.di.configureAuthClient
 import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.test.runTest
 
 class AuthDependenciesTest {
     @Test

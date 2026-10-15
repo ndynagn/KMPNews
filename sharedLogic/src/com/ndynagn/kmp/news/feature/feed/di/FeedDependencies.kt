@@ -16,13 +16,13 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.URLProtocol
+import kotlin.time.Clock
 import org.koin.core.KoinApplication
 import org.koin.dsl.bind
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import org.koin.plugin.module.dsl.factory
 import org.koin.plugin.module.dsl.single
-import kotlin.time.Clock
 
 /**
  * Owns one isolated graph and its resources; share it across consumers of one database.

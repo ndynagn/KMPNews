@@ -2,10 +2,10 @@ package com.ndynagn.kmp.news.feature.favorites.data
 
 import com.ndynagn.kmp.news.feature.favorites.domain.FavoriteArticle
 import com.ndynagn.kmp.news.feature.feed.domain.Article
+import kotlin.time.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlin.time.Instant
 
 internal val favoritesJson = Json { ignoreUnknownKeys = true }
 

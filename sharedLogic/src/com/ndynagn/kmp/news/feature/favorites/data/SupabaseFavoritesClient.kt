@@ -16,9 +16,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
+import kotlin.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
-import kotlin.time.Instant
 
 internal class SupabaseFavoritesClient(
     private val client: HttpClient,

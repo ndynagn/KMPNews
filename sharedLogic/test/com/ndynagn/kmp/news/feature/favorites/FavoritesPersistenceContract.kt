@@ -6,10 +6,10 @@ import com.ndynagn.kmp.news.feature.favorites.data.FavoritesCursor
 import com.ndynagn.kmp.news.feature.favorites.data.FavoritesPage
 import com.ndynagn.kmp.news.feature.favorites.data.local.FavoritesDatabase
 import com.ndynagn.kmp.news.feature.favorites.data.local.RoomFavoritesStore
-import kotlinx.coroutines.flow.first
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
 
 /** Shared real-SQLite contract for native/JVM and the separate Android device source set. */
 internal suspend fun verifyFavoritesPersistence(open: () -> FavoritesDatabase) {

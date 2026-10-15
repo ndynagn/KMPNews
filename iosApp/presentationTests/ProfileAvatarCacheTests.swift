@@ -20,6 +20,7 @@ struct ProfileAvatarCacheTests {
         }
 
         // Every request below uses a fixed, valid fixture URL.
+        // swiftlint:disable:next force_unwrapping -- Every request uses a fixed valid fixture URL.
         let request = avatar().request!
         let pipeline = ProfileAvatar.pipeline
         let format = UIGraphicsImageRendererFormat()
@@ -34,13 +35,17 @@ struct ProfileAvatarCacheTests {
         pipeline.cache[request] = ImageContainer(image: image)
 
         // The actual pipeline must return the cached image even when the signed URL changes.
+        // swiftlint:disable:next force_unwrapping -- The fixed fixture URL remains valid after token rotation.
         let rotated = avatar(token: "rotated").request!
         precondition(pipeline.cache[rotated] != nil)
         let response = try await pipeline.image(for: rotated)
 
         precondition(response === image)
+        // swiftlint:disable:next force_unwrapping -- Replacement uses the same valid fixture URL shape.
         precondition(pipeline.cache[avatar(path: "replacement.jpg").request!] == nil)
+        // swiftlint:disable:next force_unwrapping -- A different owner still produces a valid fixture URL.
         precondition(pipeline.cache[avatar(owner: "other").request!] == nil)
+        // swiftlint:disable:next force_unwrapping -- Session identity does not affect fixture URL validity.
         precondition(pipeline.cache[avatar(session: UUID()).request!] == nil)
         precondition(pipeline.configuration.dataCache == nil)
 

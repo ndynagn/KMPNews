@@ -4,12 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ndynagn.kmp.news.feature.auth.domain.AuthInputValidator
 import com.ndynagn.kmp.news.feature.auth.domain.AuthRepository
+import kotlin.time.Clock
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
 
 /** Owns one form flow. Clearing its navigation owner cancels requests and the resend timer. */
 internal class AuthViewModel(

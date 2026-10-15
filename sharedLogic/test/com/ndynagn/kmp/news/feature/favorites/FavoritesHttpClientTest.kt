@@ -19,14 +19,14 @@ import io.ktor.client.plugins.pluginOrNull
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.test.runTest
 
 class FavoritesHttpClientTest {
     private val credentials = AccountCredentials(AccountIdentity("reader", 1), "private-fixture-access")

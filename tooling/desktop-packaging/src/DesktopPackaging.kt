@@ -1,10 +1,10 @@
 package com.ndynagn.kmp.news.tooling
 
+import java.nio.file.Path
 import org.jetbrains.amper.plugins.Classpath
 import org.jetbrains.amper.plugins.Input
 import org.jetbrains.amper.plugins.Output
 import org.jetbrains.amper.plugins.TaskAction
-import java.nio.file.Path
 
 /** Repackages the official executable JAR with the resolved, ordered runtime classpath. */
 @TaskAction

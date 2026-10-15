@@ -11,6 +11,10 @@ import com.ndynagn.kmp.news.feature.auth.domain.AuthResult
 import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
 import com.ndynagn.kmp.news.feature.auth.domain.PasswordRecovery
 import com.ndynagn.kmp.news.feature.profile.domain.ProfileDetails
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,10 +25,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {

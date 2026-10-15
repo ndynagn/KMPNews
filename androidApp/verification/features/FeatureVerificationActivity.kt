@@ -8,13 +8,13 @@ import com.ndynagn.kmp.news.feature.auth.AndroidAuthStorage
 import com.ndynagn.kmp.news.feature.favorites.FavoritesDevicePersistence
 import com.ndynagn.kmp.news.feature.feed.FeedDevicePersistence
 import com.ndynagn.kmp.news.feature.search.NewsEngineDeviceFixture
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
-import java.io.File
 
 /** Feature-owned opt-in entry point, installed under a separate verification application ID. */
 class FeatureVerificationActivity : Activity() {

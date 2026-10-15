@@ -2,12 +2,12 @@ package com.ndynagn.kmp.news.feature.auth
 
 import android.content.ContextWrapper
 import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
-import java.io.File
 
 /** Invoke each method in a separate instrumentation process, write first and read second. */
 class AuthStorageProcessTest {

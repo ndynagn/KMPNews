@@ -6,10 +6,10 @@ import com.ndynagn.kmp.news.feature.feed.data.local.CachedFeed
 import com.ndynagn.kmp.news.feature.feed.data.local.RoomFeedStore
 import com.ndynagn.kmp.news.feature.feed.data.local.openFeedDatabase
 import com.ndynagn.kmp.news.feature.feed.domain.Article
-import kotlinx.coroutines.flow.first
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
+import kotlinx.coroutines.flow.first
 
 class FeedDevicePersistence {
     suspend fun verify(context: Context) {

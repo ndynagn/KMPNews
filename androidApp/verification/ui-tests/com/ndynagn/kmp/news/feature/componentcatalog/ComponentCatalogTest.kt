@@ -25,9 +25,9 @@ import androidx.compose.ui.text.TextRange
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ndynagn.kmp.news.R
+import java.io.File
 import org.junit.Rule
 import org.junit.Test
-import java.io.File
 
 class ComponentCatalogTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentCatalogActivity>()

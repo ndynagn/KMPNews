@@ -9,6 +9,7 @@ import com.ndynagn.kmp.news.feature.profile.domain.UserProfile
 import com.ndynagn.kmp.news.network.AccountIdentity
 import com.ndynagn.kmp.news.network.AccountSessionAccess
 import com.ndynagn.kmp.news.network.CredentialsResult
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
@@ -19,7 +20,6 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlin.uuid.Uuid
 
 internal class RemoteProfileRepository(
     private val remote: ProfileRemoteSource,

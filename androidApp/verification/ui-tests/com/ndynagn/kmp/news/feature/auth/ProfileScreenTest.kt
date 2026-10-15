@@ -29,13 +29,13 @@ import com.ndynagn.kmp.news.feature.auth.domain.AuthResult
 import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
 import com.ndynagn.kmp.news.feature.auth.domain.AuthUser
 import com.ndynagn.kmp.news.feature.home.presentation.MobileApp
+import java.io.File
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.io.File
 
 class ProfileScreenTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()

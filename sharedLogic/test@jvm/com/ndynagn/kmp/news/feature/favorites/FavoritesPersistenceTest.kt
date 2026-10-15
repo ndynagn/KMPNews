@@ -1,9 +1,9 @@
 package com.ndynagn.kmp.news.feature.favorites
 
 import com.ndynagn.kmp.news.feature.favorites.data.local.openFavoritesDatabase
-import kotlinx.coroutines.test.runTest
 import java.nio.file.Files
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 
 class FavoritesPersistenceTest {
     @Test

@@ -74,17 +74,23 @@ Adjacent CLAUDE files import those rules. Reusable standards cover
 [review](docs/standards/review-checklist.md) and [verification](docs/standards/verification.md).
 The [technology stack](docs/standards/technology-stack.md) records configured integrations and their verification gates.
 
-Instructions, docs and style configs are local to this checkout and excluded through
-`.git/info/exclude`. They are not distributed by cloning this repository.
+Instructions and docs are local to this checkout, excluded through `.git/info/exclude`.
+Style configs, tooling and explicit `.run/Style*.run.xml` IDE actions are versioned.
 This policy does not remove already tracked IDE files from Git.
 
 The local Toolchain plugin resolves ktlint 1.8.0 and runs it in a separate Java
-process. Swift checks use the active Xcode formatter and `.swift-format`.
+process. Detekt 2.0.0-alpha.6 runs selected syntax-only light checks. Swift checks use
+the active Xcode formatter and SwiftLint 0.65.1. Standalone analyzers are downloaded
+into the ignored checkout cache and verified by pinned SHA-256; no global install is needed.
 
 ```sh
 ./kotlin check ktlint
 ./kotlin check ktlint -m sharedLogic
 ./kotlin check swiftFormat
+./kotlin check detekt
+./kotlin check swiftLint
+./kotlin test -m style -p jvm
+./kotlin do verifyStyleTools -m style
 ```
 
 Checks never format. To format, write one literal repo-relative source path per
@@ -92,8 +98,23 @@ line to the ignored `.toolchain/style-files.txt` (no blank lines, globs or comme
 then run `./kotlin do formatKotlin -m style` or `./kotlin do formatSwift -m style`.
 Use separate selections for Kotlin and Swift. Missing, empty, duplicate, generated,
 symlinked or out-of-checkout selections fail before any formatter starts.
-Builds do not apply formatting. Full audits can report
-starter style debt, which is separate from a passing check of modified files.
+For a read-only file/folder check, the manifest accepts literal directories as well:
+
+```sh
+printf '%s\n' 'sharedLogic/src' 'sharedLogic/test' > .toolchain/style-files.txt
+./kotlin do checkSelectedKotlin -m style
+printf '%s\n' 'iosApp/src' > .toolchain/style-files.txt
+./kotlin do checkSelectedSwift -m style
+```
+
+Checks print their configuration and full file inventory. Detekt's check includes
+ktlint validation because light analysis alone accepts malformed Kotlin PSI.
+Builds, hooks and CI do not invoke these checks or formatting automatically.
+Android Studio uses Marketplace Ktlint 0.30.5, ruleset 1.8.0, MANUAL mode, with
+format-on-save and attaching to IDE reformat disabled. Installation may require a
+user-controlled restart; verify highlighting/CLI parity after activation. Shared
+Style run configurations invoke the same CLI commands. Semantic spacing,
+architecture, cancellation, meaningful names and API documentation still require review.
 
 Seven Google Android skills are installed locally for Codex and Android Studio
 at revision `5bda39f154fb859a08d45e2392f3568e049f83fb`; these ignored directories

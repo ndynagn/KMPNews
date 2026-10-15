@@ -14,13 +14,13 @@ import com.ndynagn.kmp.news.network.AccountSessionAccess
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.HttpTimeout
+import kotlin.time.Clock
 import org.koin.core.KoinApplication
 import org.koin.dsl.bind
 import org.koin.dsl.binds
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import org.koin.plugin.module.dsl.single
-import kotlin.time.Clock
 
 /** One application-owned Auth graph, independent of feed storage and HTTP configuration. */
 class AuthDependencies internal constructor(

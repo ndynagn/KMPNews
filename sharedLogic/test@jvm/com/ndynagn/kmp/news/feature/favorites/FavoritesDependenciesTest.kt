@@ -13,13 +13,13 @@ import com.ndynagn.kmp.news.feature.favorites.domain.FavoritesUpdateResult
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 
 class FavoritesDependenciesTest {
     @Test

@@ -8,6 +8,12 @@ import com.ndynagn.kmp.news.feature.feed.domain.FeedSnapshot
 import com.ndynagn.kmp.news.feature.feed.domain.FeedUpdateResult
 import com.ndynagn.kmp.news.feature.feed.domain.NewsRepository
 import com.ndynagn.kmp.news.feature.feed.domain.RefreshFeedIfNeeded
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -20,12 +26,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedViewModelTest {

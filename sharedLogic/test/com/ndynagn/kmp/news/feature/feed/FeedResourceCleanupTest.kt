@@ -1,11 +1,11 @@
 package com.ndynagn.kmp.news.feature.feed
 
 import com.ndynagn.kmp.news.feature.feed.di.closeFeedResources
-import kotlinx.coroutines.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
+import kotlinx.coroutines.CancellationException
 
 class FeedResourceCleanupTest {
     @Test

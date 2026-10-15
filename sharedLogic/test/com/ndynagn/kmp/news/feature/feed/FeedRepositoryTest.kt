@@ -12,6 +12,10 @@ import com.ndynagn.kmp.news.feature.feed.domain.FeedFailure
 import com.ndynagn.kmp.news.feature.feed.domain.FeedReadResult
 import com.ndynagn.kmp.news.feature.feed.domain.FeedUpdateResult
 import com.ndynagn.kmp.news.feature.feed.domain.RefreshFeedIfNeeded
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
@@ -20,10 +24,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class FeedRepositoryTest {
     @Test

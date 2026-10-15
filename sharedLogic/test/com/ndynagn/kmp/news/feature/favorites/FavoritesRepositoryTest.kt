@@ -17,6 +17,10 @@ import com.ndynagn.kmp.news.network.AccountCredentials
 import com.ndynagn.kmp.news.network.AccountIdentity
 import com.ndynagn.kmp.news.network.AccountSessionAccess
 import com.ndynagn.kmp.news.network.CredentialsResult
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -27,10 +31,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FavoritesRepositoryTest {

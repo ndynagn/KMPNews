@@ -1,4 +1,7 @@
 product: jvm/amper-plugin
 
+test-dependencies:
+  - junit:junit:4.13.2
+
 plugins:
   style: enabled

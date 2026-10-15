@@ -1,12 +1,12 @@
 package com.ndynagn.kmp.news.feature.favorites
 
 import com.ndynagn.kmp.news.feature.favorites.data.local.openFavoritesDatabase
+import kotlin.test.Test
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.test.runTest
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSUUID
-import kotlin.test.Test
 
 @OptIn(ExperimentalForeignApi::class)
 class FavoritesPersistenceTest {

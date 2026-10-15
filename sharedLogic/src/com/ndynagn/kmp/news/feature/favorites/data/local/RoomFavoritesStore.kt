@@ -4,8 +4,8 @@ import com.ndynagn.kmp.news.feature.favorites.data.FavoriteDto
 import com.ndynagn.kmp.news.feature.favorites.data.FavoritesCursor
 import com.ndynagn.kmp.news.feature.favorites.data.FavoritesPage
 import com.ndynagn.kmp.news.feature.favorites.data.favoritesJson
-import kotlinx.coroutines.flow.map
 import kotlin.time.Instant
+import kotlinx.coroutines.flow.map
 
 internal class RoomFavoritesStore(private val dao: FavoritesDao) : FavoritesStore {
     override fun observe(userId: String) = dao.observe(userId).map { it.toCache() }

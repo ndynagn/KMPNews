@@ -13,13 +13,6 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.headersOf
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
-import org.koin.core.KoinApplication
-import org.koin.dsl.module
-import org.koin.dsl.onClose
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,6 +23,13 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.koin.core.KoinApplication
+import org.koin.dsl.module
+import org.koin.dsl.onClose
 
 class FeedDependenciesTest {
     @Test

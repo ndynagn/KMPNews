@@ -3,10 +3,10 @@ package com.ndynagn.kmp.news.feature.search
 import com.ndynagn.kmp.news.data.news.configureNewsHttpClient
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
-import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlinx.coroutines.runBlocking
 
 class LocalNewsEngineTest {
     @Test

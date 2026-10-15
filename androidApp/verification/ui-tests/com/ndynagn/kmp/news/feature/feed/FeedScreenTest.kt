@@ -38,6 +38,7 @@ import com.ndynagn.kmp.news.feature.feed.domain.FeedUpdateResult
 import com.ndynagn.kmp.news.feature.feed.domain.NewsRepository
 import com.ndynagn.kmp.news.feature.feed.domain.RefreshFeedIfNeeded
 import com.ndynagn.kmp.news.feature.home.presentation.MobileApp
+import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
@@ -45,7 +46,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
-import java.io.File
 
 class FeedScreenTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
