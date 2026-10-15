@@ -1,0 +1,19 @@
+# Light analysis only: do not enable defaults or rules requiring compiler resolution.
+config:
+  validation: true
+  warningsAsErrors: true
+empty-blocks:
+  active: true
+  EmptyCatchBlock:
+    active: true
+    allowedExceptionNameRegex: '_|(ignore|expected).*'
+exceptions:
+  active: true
+  SwallowedException:
+    active: true
+    ignoredExceptionTypes: []
+    allowedExceptionNameRegex: '_|(ignore|expected).*'
+potential-bugs:
+  active: true
+  UnconditionalJumpStatementInLoop:
+    active: true

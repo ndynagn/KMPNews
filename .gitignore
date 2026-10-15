@@ -1,2 +1,38 @@
-# Project exclude paths
-/build/
+# Generated build outputs and local tool caches.
+build/
+.gradle/
+.kotlin/
+.toolchain/
+__pycache__/
+androidApp/src/generated/
+androidApp/test/generated/
+androidApp/src/AndroidManifest.xml
+# Variant resource files are owned by the preparation hook.
+androidApp/res/**/kmpnews_catalog_*.xml
+androidApp/res/drawable/catalog_*.xml
+
+# Share only deliberate, portable IDE settings; everything else is regenerated or local.
+.idea/*
+!.idea/.gitignore
+!.idea/ktlint-plugin.xml
+!.idea/vcs.xml
+!.idea/inspectionProfiles/
+.idea/inspectionProfiles/*
+!.idea/inspectionProfiles/Project_Default.xml
+!.idea/runConfigurations/
+.idea/runConfigurations/*
+!.idea/runConfigurations/iosApp.xml
+
+# Local SDK and operating-system files.
+*.iml
+local.properties
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local Xcode state; shared projects, schemes and resources remain versionable.
+xcuserdata/
+DerivedData/
+*.xcuserstate
+**/xcshareddata/WorkspaceSettings.xcsettings

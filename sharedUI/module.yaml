@@ -13,9 +13,19 @@ dependencies:
   - $compose.hotReload.runtimeApi
   - $libs.androidx.lifecycle.viewmodel.compose
   - $libs.androidx.lifecycle.runtime.compose
+  - $libs.navigation3.ui
+  - $libs.coil.compose
+  - $libs.coil.network
+  - $libs.ktor.client.okhttp
+
+test-dependencies:
+  - $libs.coroutines.test
 
 dependencies@android:
   - $compose.uiTooling
+
+test-dependencies@jvm:
+  - $compose.desktop.currentOs
 
 settings:
   compose:
@@ -24,3 +34,6 @@ settings:
       packageName: com.ndynagn.kmp.news.resources
       # Generate public accessors so other modules (and previews) can use Res.*
       exposedAccessors: true
+
+plugins:
+  style: enabled

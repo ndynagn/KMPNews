@@ -2,12 +2,24 @@ product: android/app
 
 dependencies:
   - //sharedUI
+  - //sharedLogic
+  - $compose.material3
+  - $libs.navigation3.ui
+  - $libs.androidx.lifecycle.viewmodel.compose
   - $libs.androidx.activity.compose
   - $compose.preview
   - $compose.uiTooling
 
+test-dependencies:
+  - $libs.coroutines.test
+  - $libs.junit
+
 settings:
+  junit: junit-4
   compose: enabled
   android:
     namespace: com.ndynagn.kmp.news
     applicationId: com.ndynagn.kmp.news
+
+plugins:
+  style: enabled

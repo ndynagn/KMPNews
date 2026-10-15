@@ -16,6 +16,12 @@
 
 setlocal
 
+@rem Prepare checkout-specific integrations before the official bootstrap/model load.
+if not "%KMPNEWS_TOOLCHAIN_PREPARED%"=="1" (
+  python "%~dp0scripts\prepare-toolchain.py" %*
+  exit /b
+)
+
 @rem The version of the Kotlin Toolchain distribution to provision and use
 set kotlin_cli_version=0.13.0
 @rem Establish chain of trust from here by specifying the exact checksum of the Kotlin Toolchain distribution to be run

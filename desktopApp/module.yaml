@@ -11,3 +11,7 @@ settings:
   compose: enabled
   jvm:
     mainClass: com.ndynagn.kmp.news.MainKt
+
+plugins:
+  style: enabled
+  desktop-packaging: enabled

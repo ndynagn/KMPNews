@@ -1,0 +1,65 @@
+tasks:
+  kotlinAudit:
+    action: !com.ndynagn.kmp.news.tooling.checkKotlin
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+      toolClasspath:
+        - com.pinterest.ktlint:ktlint-cli:1.8.0
+  swiftAudit:
+    action: !com.ndynagn.kmp.news.tooling.checkSwift
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+  kotlinFormat:
+    action: !com.ndynagn.kmp.news.tooling.formatKotlin
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+      toolClasspath: ${kotlinAudit.action.toolClasspath}
+  swiftFormat:
+    action: !com.ndynagn.kmp.news.tooling.formatSwift
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+  detektAudit:
+    action: !com.ndynagn.kmp.news.tooling.checkDetekt
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+      toolClasspath: ${kotlinAudit.action.toolClasspath}
+  swiftLintAudit:
+    action: !com.ndynagn.kmp.news.tooling.checkSwiftLint
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+  selectedKotlin:
+    action: !com.ndynagn.kmp.news.tooling.checkSelectedKotlin
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+      toolClasspath: ${kotlinAudit.action.toolClasspath}
+  selectedSwift:
+    action: !com.ndynagn.kmp.news.tooling.checkSelectedSwift
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+  toolRegression:
+    action: !com.ndynagn.kmp.news.tooling.verifyStyleTools
+      checkout: ${project.rootDir}
+      moduleName: ${module.name}
+      toolClasspath: ${kotlinAudit.action.toolClasspath}
+
+checks:
+  - name: ktlint
+    performedBy: kotlinAudit
+  - name: swiftFormat
+    performedBy: swiftAudit
+  - name: detekt
+    performedBy: detektAudit
+  - name: swiftLint
+    performedBy: swiftLintAudit
+
+commands:
+  - name: formatKotlin
+    performedBy: kotlinFormat
+  - name: formatSwift
+    performedBy: swiftFormat
+  - name: checkSelectedKotlin
+    performedBy: selectedKotlin
+  - name: checkSelectedSwift
+    performedBy: selectedSwift
+  - name: verifyStyleTools
+    performedBy: toolRegression

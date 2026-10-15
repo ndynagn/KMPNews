@@ -16,6 +16,11 @@
 
 set -e -u
 
+# Prepare checkout-specific integrations before the official bootstrap/model load.
+if [ "${KMPNEWS_TOOLCHAIN_PREPARED:-}" != "1" ]; then
+  exec python3 "$(dirname "$0")/scripts/prepare-toolchain.py" "$@"
+fi
+
 # The version of the Kotlin Toolchain (and CLI) distribution to provision and use
 kotlin_cli_version=0.13.0
 # Establish chain of trust from here by specifying exact checksum of Kotlin Toolchain (and CLI) distribution to be run

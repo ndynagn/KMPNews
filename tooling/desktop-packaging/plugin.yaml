@@ -1,0 +1,11 @@
+tasks:
+  package:
+    action: !com.ndynagn.kmp.news.tooling.packageDesktop
+      runtimeClasspath: ${module.runtimeClasspath}
+      packager: ${project.rootDir}/scripts/package-desktop.py
+      template: ${project.rootDir}/build/tasks/_desktopApp_executableJarJvm/desktopApp-jvm-executable.jar
+      artifact: ${taskOutputDir}/KMPNews-desktop.jar
+
+commands:
+  - name: packageDesktop
+    performedBy: package

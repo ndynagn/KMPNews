@@ -1,31 +1,21 @@
 import KotlinModules
 import SwiftUI
 
-struct ContentView: View {
-    @State private var showGreeting = false
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Button("Click me!") {
-                withAnimation {
-                    showGreeting.toggle()
-                }
-            }
-
-            if showGreeting {
-                Text(Greeting().greet())
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
 @main
 struct KMPNewsApp: App {
+    private let services = AppServices()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            #if FEATURE_VERIFICATION
+                if ProcessInfo.processInfo.arguments.contains("--search-navigation-prototype") {
+                    SearchNavigationPrototype()
+                } else {
+                    ContentView(services: services)
+                }
+            #else
+                ContentView(services: services)
+            #endif
         }
     }
 }

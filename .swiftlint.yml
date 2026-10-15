@@ -1,0 +1,15 @@
+# swift-format owns whitespace, imports, wrapping and basic naming.
+# These syntax-only checks supplement it; no blanket baseline or analyzer rules.
+only_rules:
+  - duplicate_conditions
+  - duplicate_enum_cases
+  - duplicated_key_in_dictionary_literal
+  - blanket_disable_command
+  - force_cast
+  - force_try
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+force_cast: error
+force_try: error
+force_unwrapping: error
+implicitly_unwrapped_optional: error
