@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -26,6 +28,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
@@ -61,7 +65,13 @@ import com.ndynagn.kmp.news.components.designsystem.AppScreenState
 import com.ndynagn.kmp.news.components.designsystem.AppSpacing
 import com.ndynagn.kmp.news.components.designsystem.AppStatusView
 import com.ndynagn.kmp.news.components.designsystem.AppTextField
+import com.ndynagn.kmp.news.resources.Res as KitRes
+import com.ndynagn.kmp.news.resources.kit_arrow_back
+import com.ndynagn.kmp.news.resources.kit_close
+import com.ndynagn.kmp.news.resources.kit_description
+import com.ndynagn.kmp.news.resources.kit_error_outline
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource as kitPainterResource
 
 private data class ComponentCatalogActions(
     val select: (CatalogSection?) -> Unit,
@@ -82,6 +92,7 @@ private data class ComponentCatalogActions(
     val setCompactFeedback: (Boolean) -> Unit,
     val setRetryFails: (Boolean) -> Unit,
     val retryFeedback: () -> Unit,
+    val refreshSpecimen: () -> Unit,
 )
 
 @Composable
@@ -145,6 +156,7 @@ internal fun ComponentCatalogRoute(onClose: () -> Unit) {
                     catalog::setCompactFeedback,
                     catalog::setRetryFails,
                     catalog::retryFeedback,
+                    catalog::refreshSpecimen,
                 ),
                 onClose,
             )
@@ -179,8 +191,22 @@ private fun ComponentCatalogScreen(
             TopAppBar(
                 title = { Text(stringResource(state.section?.titleResource() ?: R.string.catalog_title)) },
                 navigationIcon = {
-                    TextButton(onClick = { if (state.section == null) onClose() else back() }) {
-                        Text(stringResource(navigationLabel))
+                    AppIconButton(
+                        label = stringResource(navigationLabel),
+                        onClick = { if (state.section == null) onClose() else back() },
+                    ) {
+                        Icon(
+                            kitPainterResource(
+                                if (state.section ==
+                                    null
+                                ) {
+                                    KitRes.drawable.kit_close
+                                } else {
+                                    KitRes.drawable.kit_arrow_back
+                                },
+                            ),
+                            null,
+                        )
                     }
                 },
             )
@@ -329,6 +355,7 @@ private fun CatalogSectionContent(
                     else -> Text(stringResource(R.string.catalog_sample_name), Modifier.testTag("kit.tab.profile"))
                 }
                 Text(stringResource(R.string.catalog_navigation_hint))
+                CatalogRefreshSpecimen(state, actions.refreshSpecimen)
             }
 
             CatalogSection.NEWS -> {
@@ -356,8 +383,8 @@ private fun CatalogSectionContent(
                             }
                             if (state.showLoadedImage && !state.imageUnavailable) {
                                 Image(
-                                    painterResource(R.drawable.catalog_illustration),
-                                    stringResource(R.string.catalog_illustration),
+                                    painterResource(R.drawable.catalog_observatory),
+                                    stringResource(R.string.catalog_observatory),
                                     Modifier.fillMaxSize().testTag("kit.news.image.$compact"),
                                     contentScale = ContentScale.Crop,
                                 )
@@ -367,6 +394,17 @@ private fun CatalogSectionContent(
                         },
                     )
                 }
+                Text(stringResource(R.string.catalog_no_image))
+                AppNewsPreview(
+                    stringResource(R.string.catalog_article),
+                    Modifier.fillMaxWidth().testTag("kit.news.noImage"),
+                    metadata = stringResource(R.string.catalog_article_metadata),
+                )
+                AppNewsPreview(
+                    stringResource(R.string.catalog_article),
+                    Modifier.fillMaxWidth(),
+                    isCompact = true,
+                )
             }
 
             CatalogSection.PROFILE -> {
@@ -509,12 +547,20 @@ private fun CatalogFeedbackContent(state: ComponentCatalogState, retry: () -> Un
             modifier,
             message = stringResource(R.string.catalog_empty_hint),
             isCompact = state.isCompactFeedback,
+            icon = { Icon(kitPainterResource(KitRes.drawable.kit_description), contentDescription = null) },
         )
 
         CatalogFeedback.ERROR -> AppStatusView(
             stringResource(R.string.catalog_request_error),
             modifier,
             isCompact = state.isCompactFeedback,
+            icon = {
+                Icon(
+                    kitPainterResource(KitRes.drawable.kit_error_outline),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
         ) {
             AppActionButton(
                 stringResource(R.string.catalog_retry),
@@ -525,6 +571,26 @@ private fun CatalogFeedbackContent(state: ComponentCatalogState, retry: () -> Un
         }
 
         CatalogFeedback.CONTENT -> Text(stringResource(R.string.catalog_feedback), modifier)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CatalogRefreshSpecimen(state: ComponentCatalogState, onRefresh: () -> Unit) {
+    Text(stringResource(R.string.catalog_pull_hint))
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxWidth().height(280.dp).testTag("kit.refresh"),
+    ) {
+        LazyColumn(Modifier.fillMaxSize().testTag("kit.refresh.list")) {
+            item {
+                AppNewsPreview(
+                    stringResource(R.string.catalog_article),
+                    metadata = stringResource(R.string.catalog_refresh_count, state.refreshCount),
+                )
+            }
+        }
     }
 }
 

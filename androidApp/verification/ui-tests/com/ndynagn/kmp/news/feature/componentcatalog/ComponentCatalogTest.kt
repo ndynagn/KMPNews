@@ -20,6 +20,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.test.espresso.Espresso.closeSoftKeyboard
@@ -31,6 +33,25 @@ import org.junit.Test
 
 class ComponentCatalogTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentCatalogActivity>()
+
+    @Test
+    fun pullToRefreshChangesSampleContentAndLeavesWithoutPendingWork() {
+        open("navigation")
+        compose.onNodeWithTag("kit.refresh").performScrollTo()
+
+        compose.onNodeWithTag("kit.refresh.list").performTouchInput { swipeDown() }
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(
+                androidx.compose.ui.test.hasText(compose.activity.getString(R.string.catalog_refresh_count, 1)),
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithText(compose.activity.getString(R.string.catalog_refresh_count, 1)).assertIsDisplayed()
+        capture("selected-kit-pull-refresh")
+        compose.onNodeWithContentDescription(compose.activity.getString(R.string.catalog_back)).performClick()
+        open("news")
+        compose.onNodeWithTag("kit.news.noImage").performScrollTo().assertIsDisplayed()
+    }
 
     @Test
     fun catalogSectionsRenderAndReturnThroughNativeBack() {
@@ -54,7 +75,7 @@ class ComponentCatalogTest {
                 ).performClick()
                 capture("catalog-foundations-fallback")
             }
-            compose.onNodeWithText(compose.activity.getString(R.string.catalog_back)).performClick()
+            compose.onNodeWithContentDescription(compose.activity.getString(R.string.catalog_back)).performClick()
         }
     }
 
@@ -74,7 +95,7 @@ class ComponentCatalogTest {
         compose.activityRule.scenario.recreate()
 
         compose.onNodeWithTag("kit.auth.code").assertIsDisplayed()
-        compose.onNodeWithText(compose.activity.getString(R.string.catalog_close)).performClick()
+        compose.onNodeWithContentDescription(compose.activity.getString(R.string.catalog_close)).performClick()
         compose.onNodeWithTag("kit.open.register").performClick()
         compose.onNodeWithTag("kit.auth.email").assert(
             SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")),
@@ -105,7 +126,7 @@ class ComponentCatalogTest {
         open("foundations")
         val palette = compose.onNodeWithContentDescription(compose.activity.getString(R.string.catalog_dynamic_colors))
         palette.assertIsOn().performClick().assertIsOff().performClick().assertIsOn()
-        compose.onNodeWithText(compose.activity.getString(R.string.catalog_back)).performClick()
+        compose.onNodeWithContentDescription(compose.activity.getString(R.string.catalog_back)).performClick()
         open("news")
         val loaded = compose.onNodeWithContentDescription(compose.activity.getString(R.string.catalog_image_loaded))
         loaded.performClick().assertIsOn()
@@ -130,7 +151,7 @@ class ComponentCatalogTest {
         password.performTextInput("demo-password")
         password.performTextInputSelection(TextRange(2, 5))
         val selection = password.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange]
-        compose.onNodeWithText("Show").performClick()
+        compose.onNodeWithContentDescription("Show").performClick()
         password.assertIsFocused().assertTextContains("demo-password")
         password.assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, selection))
         compose.onNodeWithTag("kit.fields.code").performScrollTo().performTextInput("001234")
@@ -308,7 +329,7 @@ class ComponentCatalogTest {
             )
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText(compose.activity.getString(R.string.catalog_close)).performClick()
+        compose.onNodeWithContentDescription(compose.activity.getString(R.string.catalog_close)).performClick()
         compose.onNodeWithTag("kit.open.recovery").performScrollTo().performClick()
         compose.onNodeWithTag("kit.auth.email").assert(
             SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")),

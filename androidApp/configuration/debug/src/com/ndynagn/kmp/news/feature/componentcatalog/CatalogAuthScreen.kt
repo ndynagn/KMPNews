@@ -10,9 +10,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,10 +29,15 @@ import com.ndynagn.kmp.news.components.designsystem.AppActionButton
 import com.ndynagn.kmp.news.components.designsystem.AppActionEmphasis
 import com.ndynagn.kmp.news.components.designsystem.AppCodeField
 import com.ndynagn.kmp.news.components.designsystem.AppFormMessage
+import com.ndynagn.kmp.news.components.designsystem.AppIconButton
 import com.ndynagn.kmp.news.components.designsystem.AppLoadingIndicator
 import com.ndynagn.kmp.news.components.designsystem.AppPasswordField
 import com.ndynagn.kmp.news.components.designsystem.AppSpacing
 import com.ndynagn.kmp.news.components.designsystem.AppTextField
+import com.ndynagn.kmp.news.resources.Res
+import com.ndynagn.kmp.news.resources.kit_arrow_back
+import com.ndynagn.kmp.news.resources.kit_close
+import org.jetbrains.compose.resources.painterResource
 
 internal data class CatalogAuthActions(
     val setEmail: (String) -> Unit,
@@ -57,8 +62,16 @@ internal fun CatalogAuthScreen(
     Scaffold(topBar = {
         TopAppBar(
             title = { Text(title) },
-            navigationIcon = { TextButton(onBack) { Text(stringResource(R.string.catalog_back)) } },
-            actions = { TextButton(onClose) { Text(stringResource(R.string.catalog_close)) } },
+            navigationIcon = {
+                AppIconButton(label = stringResource(R.string.catalog_back), onClick = onBack) {
+                    Icon(painterResource(Res.drawable.kit_arrow_back), null)
+                }
+            },
+            actions = {
+                AppIconButton(label = stringResource(R.string.catalog_close), onClick = onClose) {
+                    Icon(painterResource(Res.drawable.kit_close), null)
+                }
+            },
         )
     }) { padding ->
         Column(

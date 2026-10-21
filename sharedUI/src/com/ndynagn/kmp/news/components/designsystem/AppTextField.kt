@@ -1,10 +1,12 @@
 package com.ndynagn.kmp.news.components.designsystem
 
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,9 +20,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
 import com.ndynagn.kmp.news.resources.Res
 import com.ndynagn.kmp.news.resources.kit_hide_password
 import com.ndynagn.kmp.news.resources.kit_show_password
+import com.ndynagn.kmp.news.resources.kit_visibility
+import com.ndynagn.kmp.news.resources.kit_visibility_off
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Single-line input; callers own validation, IME policy and any submission behavior. */
@@ -73,8 +79,15 @@ fun AppPasswordField(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            TextButton(onClick = { visible = !visible }, enabled = isEnabled) {
-                Text(stringResource(if (visible) Res.string.kit_hide_password else Res.string.kit_show_password))
+            IconButton(
+                onClick = { visible = !visible },
+                enabled = isEnabled,
+                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+            ) {
+                Icon(
+                    painterResource(if (visible) Res.drawable.kit_visibility_off else Res.drawable.kit_visibility),
+                    stringResource(if (visible) Res.string.kit_hide_password else Res.string.kit_show_password),
+                )
             }
         },
     )

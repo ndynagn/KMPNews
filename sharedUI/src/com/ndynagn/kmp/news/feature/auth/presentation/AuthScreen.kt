@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,6 +24,7 @@ import com.ndynagn.kmp.news.components.designsystem.AppActionButton
 import com.ndynagn.kmp.news.components.designsystem.AppActionEmphasis
 import com.ndynagn.kmp.news.components.designsystem.AppCodeField
 import com.ndynagn.kmp.news.components.designsystem.AppFormMessage
+import com.ndynagn.kmp.news.components.designsystem.AppIconButton
 import com.ndynagn.kmp.news.components.designsystem.AppPasswordField
 import com.ndynagn.kmp.news.components.designsystem.AppTextField
 import com.ndynagn.kmp.news.feature.auth.domain.AuthFailure
@@ -45,6 +46,8 @@ import com.ndynagn.kmp.news.resources.auth_register
 import com.ndynagn.kmp.news.resources.auth_repeat_password
 import com.ndynagn.kmp.news.resources.auth_resend
 import com.ndynagn.kmp.news.resources.auth_resend_wait
+import com.ndynagn.kmp.news.resources.kit_arrow_back
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,7 +65,9 @@ internal fun AuthScreen(
     }
     Scaffold(modifier = modifier, topBar = {
         TopAppBar(title = { Text(stringResource(title)) }, navigationIcon = {
-            TextButton(onClick = onBack) { Text(stringResource(Res.string.auth_back)) }
+            AppIconButton(label = stringResource(Res.string.auth_back), onClick = onBack) {
+                Icon(painterResource(Res.drawable.kit_arrow_back), null)
+            }
         })
     }) { padding ->
         Column(

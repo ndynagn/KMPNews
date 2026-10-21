@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
@@ -21,11 +19,18 @@ import kotlin.test.assertTrue
 class AppComponentsRenderTest {
     @Test
     fun rendersNarrowLargeTextAndWideDarkSpecimens() {
-        val evidence = File(System.getProperty("java.io.tmpdir"), "kmpnews-compose-kit").apply { mkdirs() }
+        val evidence = File(System.getProperty("java.io.tmpdir"), "kmpnews-selected-kit").apply { mkdirs() }
 
-        for ((width, dark, fontScale) in listOf(Triple(360, false, 2f), Triple(900, true, 1f))) {
+        val scenarios = listOf(
+            Triple(390, false, 1f),
+            Triple(390, true, 1f),
+            Triple(360, false, 2f),
+            Triple(900, true, 1f),
+        )
+
+        for ((width, dark, fontScale) in scenarios) {
             val scene = ImageComposeScene(width, 1200, density = Density(1f, fontScale)) {
-                AppTheme(if (dark) darkColorScheme() else lightColorScheme()) {
+                AppTheme(appColorScheme(isDark = dark)) {
                     Surface(Modifier.fillMaxSize()) {
                         Column(
                             Modifier.padding(AppSpacing.screen),
@@ -42,6 +47,12 @@ class AppComponentsRenderTest {
                                 "An article with optional metadata",
                                 metadata = "Demo News",
                                 modifier = Modifier.fillMaxWidth(),
+                            )
+                            AppNewsPreview(
+                                "A compact news headline",
+                                metadata = "Demo News",
+                                isCompact = true,
+                                image = { AppImagePlaceholder("Image unavailable") },
                             )
                             AppStatusView(
                                 "Unable to load news",
@@ -61,7 +72,7 @@ class AppComponentsRenderTest {
                         val bytes = data.bytes
 
                         assertTrue(bytes.size > 1000, "The specimen must produce a populated raster image")
-                        File(evidence, "jvm-$width-$fontScale.png").writeBytes(bytes)
+                        File(evidence, "jvm-$width-$dark-$fontScale.png").writeBytes(bytes)
                     } ?: error("Unable to encode rendered specimen")
                 }
             } finally {

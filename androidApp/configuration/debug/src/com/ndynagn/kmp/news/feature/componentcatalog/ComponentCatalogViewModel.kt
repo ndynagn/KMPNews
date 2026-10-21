@@ -45,6 +45,8 @@ internal data class ComponentCatalogState(
     val retryFails: Boolean = false,
     val isRetrying: Boolean = false,
     val showLoadedImage: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val refreshCount: Int = 0,
 )
 
 /** Activity-owned catalog controls; fictional profile state never reaches the application session. */
@@ -55,6 +57,8 @@ internal class ComponentCatalogViewModel(private val pause: suspend (Long) -> Un
     private var feedbackRequest: Job? = null
     private var profileGeneration = 0
     private var feedbackGeneration = 0
+    private var refreshRequest: Job? = null
+    private var refreshGeneration = 0
 
     fun setDynamicColor(value: Boolean) {
         mutableState.value = state.value.copy(useDynamicColor = value)
@@ -64,6 +68,8 @@ internal class ComponentCatalogViewModel(private val pause: suspend (Long) -> Un
         if (section != CatalogSection.PROFILE) cancelProfileEdit()
 
         if (section != CatalogSection.STATES) cancelFeedbackRequest()
+
+        if (section != CatalogSection.NAVIGATION) cancelRefresh()
 
         mutableState.value = state.value.copy(section = section)
     }
@@ -99,6 +105,26 @@ internal class ComponentCatalogViewModel(private val pause: suspend (Long) -> Un
 
     fun setLoadedImage(value: Boolean) {
         mutableState.value = state.value.copy(showLoadedImage = value)
+    }
+
+    fun refreshSpecimen() {
+        if (state.value.isRefreshing) return
+
+        val generation = ++refreshGeneration
+        mutableState.value = state.value.copy(isRefreshing = true)
+        refreshRequest = viewModelScope.launch {
+            pause(700)
+            if (generation != refreshGeneration) return@launch
+
+            mutableState.value = state.value.copy(isRefreshing = false, refreshCount = state.value.refreshCount + 1)
+        }
+    }
+
+    private fun cancelRefresh() {
+        refreshGeneration += 1
+        refreshRequest?.cancel()
+        refreshRequest = null
+        mutableState.value = state.value.copy(isRefreshing = false)
     }
 
     fun editProfile() {
@@ -217,6 +243,7 @@ internal class ComponentCatalogViewModel(private val pause: suspend (Long) -> Un
     }
 
     override fun onCleared() {
+        cancelRefresh()
         profileGeneration += 1
         feedbackGeneration += 1
         super.onCleared()

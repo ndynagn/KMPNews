@@ -33,6 +33,42 @@ class ComponentCatalogViewModelTest {
     }
 
     @Test
+    fun demoRefreshCompletesOnceAndRejectsDuplicateActivation() = runTest(dispatcher) {
+        var requests = 0
+        val model = ComponentCatalogViewModel {
+            requests += 1
+            delay(it)
+        }
+        model.select(CatalogSection.NAVIGATION)
+
+        model.refreshSpecimen()
+        model.refreshSpecimen()
+        runCurrent()
+
+        assertTrue(model.state.value.isRefreshing)
+        assertEquals(1, requests)
+        advanceTimeBy(700)
+        runCurrent()
+        assertFalse(model.state.value.isRefreshing)
+        assertEquals(1, model.state.value.refreshCount)
+    }
+
+    @Test
+    fun sectionExitRejectsLateRefreshCompletion() = runTest(dispatcher) {
+        val model = ComponentCatalogViewModel { withContext(NonCancellable) { delay(it) } }
+        model.select(CatalogSection.NAVIGATION)
+        model.refreshSpecimen()
+        runCurrent()
+
+        model.select(CatalogSection.NEWS)
+        advanceTimeBy(700)
+        runCurrent()
+
+        assertFalse(model.state.value.isRefreshing)
+        assertEquals(0, model.state.value.refreshCount)
+    }
+
+    @Test
     fun profileSavePublishesOnceAndRejectsRepeatedActivation() = runTest(dispatcher) {
         var requests = 0
         val model = ComponentCatalogViewModel {

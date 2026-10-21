@@ -13,8 +13,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +33,7 @@ import com.ndynagn.kmp.news.components.designsystem.AppActionButton
 import com.ndynagn.kmp.news.components.designsystem.AppScreenState
 import com.ndynagn.kmp.news.components.designsystem.AppStatusView
 import com.ndynagn.kmp.news.components.designsystem.AppTheme
+import com.ndynagn.kmp.news.components.designsystem.appColorScheme
 import com.ndynagn.kmp.news.feature.auth.domain.AuthRepository
 import com.ndynagn.kmp.news.feature.auth.presentation.AuthFlowOwner
 import com.ndynagn.kmp.news.feature.auth.presentation.AuthScreen
@@ -94,7 +93,7 @@ fun MobileApp(
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { profileViewModel.restore() }
     }
 
-    val resolvedColorScheme = colorScheme ?: if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+    val resolvedColorScheme = colorScheme ?: appColorScheme(isDark = isSystemInDarkTheme())
 
     AppTheme(colorScheme = resolvedColorScheme) {
         val form = authStep
