@@ -59,6 +59,21 @@ class AndroidPreparationTest(unittest.TestCase):
                  for path in self.root.rglob("*") if path.is_file()}
         self.assertEqual(before, after)
 
+    def test_png_catalog_resource_is_staged_only_for_debug(self):
+        source = self.root / "androidApp/configuration/debug/res/drawable/catalog_observatory.png"
+        source.parent.mkdir(parents=True)
+        source.write_bytes(b"\x89PNG\r\n\x1a\n")
+        output = self.root / "androidApp/res/drawable/catalog_observatory.png"
+
+        preparation.prepare_android("debug")
+
+        self.assertEqual(source.read_bytes(), output.read_bytes())
+
+        preparation.prepare_android("release")
+
+        self.assertFalse(output.exists())
+        self.assertTrue(source.exists())
+
     def test_edited_generated_source_is_preserved_and_rejected(self):
         preparation.prepare_android("debug")
         path = self.root / "androidApp/src/generated/variant/Catalog.kt"

@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -23,12 +24,13 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
+import com.ndynagn.kmp.news.feature.LocaleRule
+import com.ndynagn.kmp.news.feature.RussianMobileApp as MobileApp
 import com.ndynagn.kmp.news.feature.auth.domain.AuthFailure
 import com.ndynagn.kmp.news.feature.auth.domain.AuthRepository
 import com.ndynagn.kmp.news.feature.auth.domain.AuthResult
 import com.ndynagn.kmp.news.feature.auth.domain.AuthSession
 import com.ndynagn.kmp.news.feature.auth.domain.AuthUser
-import com.ndynagn.kmp.news.feature.home.presentation.MobileApp
 import java.io.File
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
@@ -38,7 +40,11 @@ import org.junit.Rule
 import org.junit.Test
 
 class ProfileScreenTest {
-    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    @get:Rule(order = 0)
+    val locale = LocaleRule()
+
+    @get:Rule(order = 1)
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
     fun guestButtonsNavigateLoginAndLogoutWithoutFeedStorage() {
@@ -128,7 +134,7 @@ class ProfileScreenTest {
         compose.onNodeWithTag("auth.email").performTextInput("reader@example.test")
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithTag("auth.email").assertTextContains("reader@example.test")
-        compose.onNodeWithText("Назад").performClick()
+        compose.onNodeWithContentDescription("Назад").performClick()
         compose.onNodeWithTag("profile.login").performClick()
         compose.onNodeWithTag("auth.email").assertTextContains("Email")
     }

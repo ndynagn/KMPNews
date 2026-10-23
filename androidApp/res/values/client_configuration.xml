@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Intentionally unconfigured during local-only migration checks. Never use privileged keys. -->
-    <string name="supabase_url" translatable="false"></string>
-    <string name="supabase_publishable_key" translatable="false"></string>
+    <!-- Public client configuration shared with the archived iOS client. Never use privileged keys. -->
+    <string name="supabase_url" translatable="false">https://awupjlsmdnbhpfbmykrv.supabase.co</string>
+    <string name="supabase_publishable_key" translatable="false">sb_publishable_oxz33ypW7eP5dCk3xNNsLw_RnJky1L1</string>
 </resources>

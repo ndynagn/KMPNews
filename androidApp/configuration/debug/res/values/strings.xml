@@ -52,7 +52,7 @@
     <string name="catalog_profile_hint">Example guest profile. Sign in changes only this demo.</string>
     <string name="catalog_empty">Nothing here yet</string>
     <string name="catalog_empty_hint">Your news will appear here</string>
-    <string name="catalog_foundations_hint">Material 3 Expressive. Colors follow the system; type and shapes use Material defaults.</string>
+    <string name="catalog_foundations_hint">Material 3 Expressive. Vivid azure fallback or Android wallpaper colors. All components follow the current theme. Type, shapes and motion use Material defaults.</string>
     <string name="catalog_heading">Heading</string>
     <string name="catalog_body">Body text that wraps and scales naturally.</string>
     <string name="catalog_caption">Caption</string>
@@ -66,4 +66,8 @@
     <string name="catalog_illustration">Demo illustration: mountains and sun</string>
     <string name="catalog_compact">Compact feedback</string>
     <string name="catalog_retry_fails">Retry returns an error</string>
+    <string name="catalog_no_image">News without an image</string>
+    <string name="catalog_pull_hint">Pull down inside the sample to refresh (offline demo).</string>
+    <string name="catalog_refresh_count">Demo refreshes: %1$d</string>
+    <string name="catalog_observatory">Demo photo: mountain observatory at dawn</string>
 </resources>

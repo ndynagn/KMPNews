@@ -1,20 +1,19 @@
 package com.ndynagn.kmp.news.feature.home.presentation
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +34,9 @@ import com.ndynagn.kmp.news.components.designsystem.AppActionButton
 import com.ndynagn.kmp.news.components.designsystem.AppScreenState
 import com.ndynagn.kmp.news.components.designsystem.AppStatusView
 import com.ndynagn.kmp.news.components.designsystem.AppTheme
+import com.ndynagn.kmp.news.components.designsystem.appColorScheme
+import com.ndynagn.kmp.news.feature.article.presentation.ArticleScreen
+import com.ndynagn.kmp.news.feature.article.presentation.articleSnapshotSaver
 import com.ndynagn.kmp.news.feature.auth.domain.AuthRepository
 import com.ndynagn.kmp.news.feature.auth.presentation.AuthFlowOwner
 import com.ndynagn.kmp.news.feature.auth.presentation.AuthScreen
@@ -59,8 +61,9 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * Mobile shell with host-owned Auth/feed graphs and navigation-owned form state.
  * Absent feed services show a retryable storage failure without disabling Profile.
+ * Hosts validate original source URLs and open them synchronously on user action;
+ * [onOpenArticleSource] returns false when no handler is available or access fails.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MobileApp(
     newsRepository: NewsRepository?,
@@ -71,6 +74,8 @@ fun MobileApp(
     onRetryFeed: () -> Unit = {},
     colorScheme: ColorScheme? = null,
     profileActions: @Composable () -> Unit = {},
+    canOpenArticleSource: (String) -> Boolean = { false },
+    onOpenArticleSource: (String) -> Boolean = { false },
 ) {
     val feedViewModel = if (newsRepository != null && refreshFeedIfNeeded != null) {
         viewModel { FeedViewModel(newsRepository, refreshFeedIfNeeded, isConfigured) }
@@ -81,12 +86,20 @@ fun MobileApp(
     val authFlowOwner = viewModel { AuthFlowOwner() }
     var authStep by rememberSaveable { mutableStateOf<AuthStep?>(null) }
     var selected by rememberSaveable { mutableStateOf(0) }
+    var selectedArticle by rememberSaveable(stateSaver = articleSnapshotSaver) { mutableStateOf(null) }
+    var resumesFromReader by rememberSaveable { mutableStateOf(false) }
+    val readingScroll = rememberSaveable(selectedArticle?.id, saver = ScrollState.Saver) { ScrollState(0) }
     val listState = rememberLazyGridState()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
-    LaunchedEffect(selected, lifecycle, feedViewModel) {
-        if (selected == 0 && feedViewModel != null) {
-            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { feedViewModel.activate() }
+    LaunchedEffect(selected, selectedArticle, authStep, lifecycle, feedViewModel) {
+        if (selected == 0 && selectedArticle == null && authStep == null && feedViewModel != null) {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                val refresh = !resumesFromReader
+
+                resumesFromReader = false
+                feedViewModel.activate(refreshIfNeeded = refresh)
+            }
         }
     }
 
@@ -94,15 +107,17 @@ fun MobileApp(
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { profileViewModel.restore() }
     }
 
-    val resolvedColorScheme = colorScheme ?: if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+    val resolvedColorScheme = colorScheme ?: appColorScheme(isDark = isSystemInDarkTheme())
 
     AppTheme(colorScheme = resolvedColorScheme) {
         val form = authStep
+
         if (form != null) {
             val closeAuth = {
                 authFlowOwner.closeFlow()
                 authStep = null
             }
+
             NavDisplay(
                 backStack = listOf("profile", "auth"),
                 onBack = closeAuth,
@@ -114,6 +129,7 @@ fun MobileApp(
                             val session by profileViewModel.session.collectAsStateWithLifecycle()
                             val notice by profileViewModel.notice.collectAsStateWithLifecycle()
                             val busy by profileViewModel.isBusy.collectAsStateWithLifecycle()
+
                             ProfileScreen(
                                 session = session,
                                 notice = notice,
@@ -137,7 +153,9 @@ fun MobileApp(
             )
         Scaffold(
             topBar = {
-                TopAppBar(title = { Text(titles[selected]) }, actions = { if (selected == 2) profileActions() })
+                if (selected != 0 || selectedArticle == null) {
+                    TopAppBar(title = { Text(titles[selected]) }, actions = { if (selected == 2) profileActions() })
+                }
             },
             bottomBar = {
                 NavigationBar {
@@ -164,23 +182,49 @@ fun MobileApp(
             },
         ) { padding ->
             NavDisplay(
-                backStack = if (selected == 0) listOf(0) else listOf(0, selected),
-                onBack = { selected = 0 },
-                modifier = Modifier.padding(padding),
+                backStack = when {
+                    selected != 0 -> listOf(0, selected)
+                    selectedArticle != null -> listOf(0, "article")
+                    else -> listOf(0)
+                },
+                onBack = { if (selected != 0) selected = 0 else selectedArticle = null },
+                modifier = Modifier
+                    .padding(padding)
+                    .consumeWindowInsets(padding),
                 entryProvider = { tab ->
                     NavEntry(tab) {
-                        if (tab == 0 && feedViewModel != null) {
+                        if (tab == "article") {
+                            val article = selectedArticle
+                            if (article != null) {
+                                ArticleScreen(
+                                    article = article,
+                                    scrollState = readingScroll,
+                                    formatDate = formatDate,
+                                    onBack = { selectedArticle = null },
+                                    canOpenSource = article.url?.let(canOpenArticleSource) == true,
+                                    onOpenSource = { article.url?.let(onOpenArticleSource) == true },
+                                )
+                            }
+                        } else if (tab == 0 && feedViewModel != null) {
                             val state by feedViewModel.state.collectAsStateWithLifecycle()
+
                             FeedScreen(
                                 state,
                                 listState,
                                 onEvent = feedViewModel::onEvent,
                                 formatDate = formatDate,
+                                onOpenArticle = { article ->
+                                    if (selectedArticle == null) {
+                                        resumesFromReader = true
+                                        selectedArticle = article
+                                    }
+                                },
                             )
                         } else if (tab == 2) {
                             val session by profileViewModel.session.collectAsStateWithLifecycle()
                             val notice by profileViewModel.notice.collectAsStateWithLifecycle()
                             val busy by profileViewModel.isBusy.collectAsStateWithLifecycle()
+
                             ProfileScreen(
                                 session = session,
                                 notice = notice,

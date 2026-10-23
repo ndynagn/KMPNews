@@ -31,5 +31,6 @@ internal fun AuthFailureText(failure: AuthFailure) {
         AuthFailure.NOT_CONFIGURED -> Res.string.auth_not_configured
         AuthFailure.SESSION_EXPIRED -> Res.string.auth_session_expired
     }
+
     Text(stringResource(message), color = MaterialTheme.colorScheme.error)
 }

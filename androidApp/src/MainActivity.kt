@@ -8,6 +8,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.ndynagn.kmp.news.feature.article.isArticleSourceUrl
+import com.ndynagn.kmp.news.feature.article.openArticleSource
 import com.ndynagn.kmp.news.feature.home.presentation.MobileApp
 import java.text.DateFormat
 import java.util.Date
@@ -32,6 +34,8 @@ class MainActivity : ComponentActivity() {
                 onRetryFeed = { dependencies = runCatching { newsApplication.feedDependencies }.getOrNull() },
                 colorScheme = androidColorScheme(),
                 profileActions = { ComponentCatalogAction() },
+                canOpenArticleSource = ::isArticleSourceUrl,
+                onOpenArticleSource = { url -> openArticleSource(url) { startActivity(it) } },
                 formatDate = { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it)) },
             )
         }

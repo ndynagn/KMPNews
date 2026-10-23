@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +31,6 @@ import org.jetbrains.compose.resources.stringResource
 enum class AppActionEmphasis { PRIMARY, SECONDARY, TEXT, DESTRUCTIVE }
 
 /** Action with a retained title footprint while busy; busy also prevents repeat activation. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppActionButton(
     title: String,

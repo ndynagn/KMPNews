@@ -30,6 +30,29 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedViewModelTest {
     @Test
+    fun readerReturnObservesStaleCacheWithoutRefreshingAndStillAllowsExplicitRefresh() = runTest {
+        val repository = FakeNewsRepository()
+        repository.read.value = FeedReadResult.Snapshot(FeedSnapshot(listOf(Article("one")), null, false, false))
+        val model = model(repository)
+        val session = launch { model.activate(refreshIfNeeded = false) }
+
+        runCurrent()
+
+        assertEquals("one", model.state.value.snapshot?.articles?.single()?.id)
+        assertEquals(0, repository.refreshes)
+        assertEquals(1, repository.observers)
+
+        model.onEvent(FeedEvent.REFRESH)
+        runCurrent()
+
+        assertEquals(1, repository.refreshes)
+
+        session.cancelAndJoin()
+
+        assertEquals(0, repository.observers)
+    }
+
+    @Test
     fun successfulRefreshAndAppendPublishObservedCards() = runTest {
         val repository = FakeNewsRepository()
         repository.publishUpdates = true
