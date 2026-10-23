@@ -1,4 +1,9 @@
 <resources>
+    <string name="article_title">Новость</string>
+    <string name="article_back">Назад</string>
+    <string name="article_menu">Действия с новостью</string>
+    <string name="article_open_source">Открыть источник</string>
+    <string name="article_source_error">Не удалось открыть источник</string>
     <string name="kit_loading">Загрузка</string>
     <string name="kit_show_password">Показать</string>
     <string name="kit_hide_password">Скрыть</string>

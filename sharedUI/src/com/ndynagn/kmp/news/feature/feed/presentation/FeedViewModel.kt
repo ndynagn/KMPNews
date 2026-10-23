@@ -32,15 +32,18 @@ internal class FeedViewModel(
     private var observer: Job? = null
     private var request: Job? = null
 
-    /** The visible route owns this structured session; cancellation stops all of its children. */
-    suspend fun activate(): Unit = sessionMutex.withLock { runSession() }
+    /**
+     * The visible route owns this structured session; cancellation stops all children.
+     * Returning from a reader resumes cache observation without a freshness request.
+     */
+    suspend fun activate(refreshIfNeeded: Boolean = true): Unit = sessionMutex.withLock { runSession(refreshIfNeeded) }
 
-    private suspend fun runSession(): Unit = coroutineScope {
+    private suspend fun runSession(refreshIfNeeded: Boolean): Unit = coroutineScope {
         if (activeScope != null) return@coroutineScope
 
         activeScope = this
         observe()
-        start(FeedOperation.ACTIVATE)
+        if (refreshIfNeeded) start(FeedOperation.ACTIVATE)
 
         try {
             awaitCancellation()

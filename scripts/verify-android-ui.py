@@ -69,6 +69,8 @@ def main():
     <application android:label="KMPNews UI verification" android:allowBackup="false">
         <activity android:name="androidx.activity.ComponentActivity" android:exported="true"
                   android:windowSoftInputMode="adjustResize" />
+        <activity android:name="com.ndynagn.kmp.news.feature.article.ReaderVerificationActivity"
+                  android:exported="false" android:windowSoftInputMode="adjustResize" />
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="com.ndynagn.kmp.news.verification.ui" />

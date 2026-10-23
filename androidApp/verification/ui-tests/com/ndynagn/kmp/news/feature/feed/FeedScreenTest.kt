@@ -24,10 +24,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ndynagn.kmp.news.androidColorScheme
+import com.ndynagn.kmp.news.feature.LocaleRule
+import com.ndynagn.kmp.news.feature.RussianMobileApp as MobileApp
 import com.ndynagn.kmp.news.feature.auth.FakeAuthRepository
 import com.ndynagn.kmp.news.feature.feed.domain.Article
 import com.ndynagn.kmp.news.feature.feed.domain.FeedClock
@@ -37,7 +40,6 @@ import com.ndynagn.kmp.news.feature.feed.domain.FeedSnapshot
 import com.ndynagn.kmp.news.feature.feed.domain.FeedUpdateResult
 import com.ndynagn.kmp.news.feature.feed.domain.NewsRepository
 import com.ndynagn.kmp.news.feature.feed.domain.RefreshFeedIfNeeded
-import com.ndynagn.kmp.news.feature.home.presentation.MobileApp
 import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +50,11 @@ import org.junit.Rule
 import org.junit.Test
 
 class FeedScreenTest {
-    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    @get:Rule(order = 0)
+    val locale = LocaleRule()
+
+    @get:Rule(order = 1)
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
     fun missingImageAndMetadataUseReadableFallbackWithoutHidingTheCard() {
@@ -274,6 +280,7 @@ class FeedScreenTest {
             )
         }
         compose.onNodeWithTag("feed.list").performScrollToIndex(9)
+        compose.onNodeWithTag("feed.list").performTouchInput { swipeUp() }
         compose.waitUntil(5_000) { repository.appends == 1 }
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("feed.retryButton").fetchSemanticsNodes().isNotEmpty() }
         compose.waitForIdle()
